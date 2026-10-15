@@ -12,55 +12,54 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: full-bleed viewfinder, HUD floats on top, controls docked to the bottom safe area. Single dark look (it's a camera). */
 :root{
   --ink:#0b0c0e; --glass:rgba(16,17,20,.62); --line:rgba(255,255,255,.22);
   --fg:#f4f2ee; --dim:rgba(244,242,238,.62);
-  --aim:#ffc23d;   /* ideal-frame brackets */
-  --lock:#5fe08a;  /* aligned */
-  --warn:#ff7a59;
+  --aim:#ffc23d; --lock:#5fe08a; --warn:#ff7a59;
   --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   --mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
   color-scheme:dark;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;background:var(--ink);color:var(--fg);font:15px/1.4 var(--ui);overflow:hidden;overscroll-behavior:none}
+html,body{height:100%;margin:0;background:var(--ink);color:var(--fg);font:15px/1.4 var(--ui);overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 button,input,select{font:inherit;color:inherit}
+input{-webkit-user-select:text;user-select:text}
 button{cursor:pointer}
 :focus-visible{outline:2px solid var(--aim);outline-offset:2px}
 [hidden]{display:none!important}
 
 #stage{position:fixed;inset:0;background:#000}
 #v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#hl{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;transition:opacity .3s;animation:shimmer 2.2s ease-in-out infinite}
+#hl.lost{opacity:.25;animation:none}
+@keyframes shimmer{0%,100%{opacity:.8}50%{opacity:1}}
 #ov{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}
 
-/* Top HUD */
 .top{position:fixed;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;
   padding:calc(env(safe-area-inset-top,0px) + 10px) max(14px,env(safe-area-inset-right,0px)) 0 max(14px,env(safe-area-inset-left,0px))}
-.pill{background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:999px;
+.pill{background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:999px;border:0;
   padding:6px 12px;font:500 12px/1.2 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 .pill b{color:var(--fg);font-weight:500}
+button.pill{color:var(--fg)}
 .spacer{flex:1}
 .icon{width:38px;height:38px;border-radius:50%;border:0;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center}
 .icon svg{width:20px;height:20px}
 
-/* Guidance readout */
 .guide{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 62px);
   text-align:center;pointer-events:none;width:min(92vw,420px)}
 .guide .main{display:inline-block;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-radius:14px;padding:8px 14px;font:500 17px/1.3 var(--ui);transition:background .2s,color .2s}
+  border-radius:14px;padding:9px 16px;font:600 18px/1.3 var(--ui);transition:background .2s,color .2s}
 .guide.locked .main{background:var(--lock);color:#06210f}
 .guide .sub{margin-top:6px;font:400 12px/1.3 var(--mono);color:var(--dim);letter-spacing:.02em;text-shadow:0 1px 3px #000}
 .guide .tip{margin-top:6px;font:400 13px/1.35 var(--ui);color:var(--fg);text-shadow:0 1px 4px #000}
 
-/* Bottom controls */
 .bottom{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:12px;
   padding:0 max(14px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(14px,env(safe-area-inset-left,0px));
   background:linear-gradient(to top,rgba(0,0,0,.55),transparent)}
 .chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
 .chips .chip:first-child{margin-left:auto}.chips .chip:last-child{margin-right:auto}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:none;border:0;border-radius:999px;padding:6px 12px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+.chip{flex:none;border:0;border-radius:999px;padding:7px 13px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   font:500 12px/1.2 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--dim)}
 .chip[aria-pressed="true"]{background:var(--aim);color:#231700}
 form.ask{display:flex;gap:8px;align-items:center;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -80,7 +79,6 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 .ai.busy svg{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* Sheets */
 .sheet{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;z-index:10}
 .panel{width:min(100%,520px);max-height:88%;overflow:auto;background:#17181b;border-radius:22px 22px 0 0;
   padding:20px max(18px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(18px,env(safe-area-inset-left,0px));
@@ -88,7 +86,7 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 .panel h2{margin:0;font:600 19px/1.2 var(--ui)}
 .panel p{margin:0;color:var(--dim);font-size:14px}
 .field{display:flex;flex-direction:column;gap:6px}
-.field label,.lbl{font:500 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.field label{font:500 11px/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 .field input,.field select{border:1px solid var(--line);background:#0f1012;border-radius:10px;padding:10px 12px;font-size:16px;width:100%}
 .toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px}
 .toggle input{width:22px;height:22px;accent-color:var(--aim)}
@@ -98,7 +96,6 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 .shot{width:100%;border-radius:14px;display:block}
 .note{font-size:13px;color:var(--dim)}
 
-/* Start screen */
 #start{position:fixed;inset:0;z-index:20;background:var(--ink);display:flex;flex-direction:column;justify-content:flex-end;
   padding:calc(env(safe-area-inset-top,0px) + 24px) max(22px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 28px) max(22px,env(safe-area-inset-left,0px));gap:18px}
 #start .mark{flex:1;display:grid;place-items:center}
@@ -113,6 +110,7 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 
 <div id="stage">
   <video id="v" playsinline muted autoplay></video>
+  <canvas id="hl"></canvas>
   <canvas id="ov"></canvas>
 </div>
 
@@ -120,27 +118,27 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   <span class="pill" id="status">Loading</span>
   <span class="pill" id="levelPill" hidden>Level <b id="levelVal">0°</b></span>
   <span class="spacer"></span>
+  <button class="pill" id="clearSel" hidden>Clear ✕</button>
   <button class="icon" id="openSettings" aria-label="Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
 </div>
 
 <div class="guide" id="guide">
-  <div class="main" id="gMain">Point at your subject</div>
+  <div class="main" id="gMain">Tap what you want to photograph</div>
   <div class="sub" id="gSub"></div>
   <div class="tip" id="gTip" hidden></div>
 </div>
 
 <div class="bottom">
   <div class="chips" role="group" aria-label="Composition">
-    <button class="chip" data-mode="auto" aria-pressed="true">Auto</button>
-    <button class="chip" data-mode="portrait" aria-pressed="false">Portrait</button>
-    <button class="chip" data-mode="full" aria-pressed="false">Full body</button>
-    <button class="chip" data-mode="wide" aria-pressed="false">Wide</button>
+    <button class="chip" data-mode="thirds" aria-pressed="true">Thirds</button>
     <button class="chip" data-mode="center" aria-pressed="false">Centered</button>
+    <button class="chip" data-mode="close" aria-pressed="false">Close-up</button>
+    <button class="chip" data-mode="wide" aria-pressed="false">Wide</button>
   </div>
   <form class="ask" id="ask">
-    <input id="intent" type="text" autocomplete="off" enterkeyhint="go" placeholder="What are you shooting? e.g. my dog, full body">
+    <input id="intent" type="text" autocomplete="off" enterkeyhint="go" placeholder="Describe the shot, e.g. close-up of my dog">
     <button type="submit">Set</button>
   </form>
   <div class="row">
@@ -153,23 +151,21 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   </div>
 </div>
 
-<!-- Settings -->
 <div class="sheet" id="settings" hidden>
   <div class="panel">
     <h2>Settings</h2>
-    <p>On-device tracking works with no key. Add an AI key so “Read scene” can understand anything in view, not just people, pets and common objects. Your key stays on this phone.</p>
+    <p>Tap-to-select works with no key. Add an AI key so “Read scene” can suggest the subject and composition for you. Your key stays on this phone.</p>
     <div class="field"><label for="prov">AI provider</label>
       <select id="prov"><option value="gemini">Google Gemini (has a free tier)</option><option value="claude">Anthropic Claude</option><option value="none">Off</option></select></div>
     <div class="field"><label for="model">Model</label><input id="model" type="text" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label for="key">API key</label><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"></div>
     <label class="toggle">Auto-capture when aligned <input id="autoCap" type="checkbox"></label>
-    <label class="toggle">Show detected objects <input id="showBoxes" type="checkbox" checked></label>
+    <label class="toggle">Glow around the subject <input id="showHl" type="checkbox" checked></label>
     <label class="toggle">Show debug numbers <input id="debug" type="checkbox"></label>
     <div class="btns"><button class="btn" id="closeSettings">Done</button></div>
   </div>
 </div>
 
-<!-- Result -->
 <div class="sheet" id="result" hidden>
   <div class="panel">
     <img class="shot" id="shotImg" alt="Captured photo">
@@ -178,7 +174,6 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   </div>
 </div>
 
-<!-- Start -->
 <div id="start">
   <div class="mark" aria-hidden="true">
     <svg viewBox="0 0 200 260" fill="none" stroke-width="4" stroke-linecap="round">
@@ -188,223 +183,214 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
     </svg>
   </div>
   <h1>Framewise</h1>
-  <p>Tell it what you’re shooting. The gold brackets show where the perfect frame is. Move until they meet the corners of the screen.</p>
+  <p>Tap what you want to photograph and it lights up. The gold brackets show where the perfect frame is. Move until they meet the corners of the screen.</p>
   <p class="err" id="startErr" hidden></p>
   <button class="btn" id="go">Start camera</button>
   <p class="note">Asks for camera and motion access. Nothing leaves your phone unless you use “Read scene”.</p>
 </div>
 
 <script type="module">
-// ---------- constants ----------
-const COCO = ["person","bicycle","car","motorcycle","airplane","bus","train","truck","boat","traffic light","fire hydrant","stop sign","parking meter","bench","bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe","backpack","umbrella","handbag","tie","suitcase","frisbee","skis","snowboard","sports ball","kite","baseball bat","baseball glove","skateboard","surfboard","tennis racket","bottle","wine glass","cup","fork","knife","spoon","bowl","banana","apple","sandwich","orange","broccoli","carrot","hot dog","pizza","donut","cake","chair","couch","potted plant","bed","dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven","toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"];
-const SYN = {person:["person","people","me","myself","friend","friends","mom","dad","mum","kid","kids","child","baby","man","woman","girl","boy","guy","someone","selfie","model","wife","husband","partner","family","couple","portrait","headshot"],
-  dog:["dog","puppy","pup"],cat:["cat","kitten","kitty"],bird:["bird"],car:["car","vehicle"],bicycle:["bike","bicycle"],
-  "potted plant":["plant","flower","flowers"],cup:["coffee","cup","mug","latte"],"wine glass":["wine","cocktail","glass"],
-  bowl:["bowl","food","meal","dish","ramen","salad"],pizza:["pizza"],cake:["cake","dessert"],book:["book"],laptop:["laptop"],
-  "cell phone":["phone","iphone"],bench:["bench"],boat:["boat"],horse:["horse"]};
+const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+const MODEL = "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
 const FALLBACK_MODELS = {gemini:"gemini-2.5-flash", claude:"claude-haiku-4-5"};
+// size: the subject's longer side as a share of the frame. tx/ty: where its centre sits (top edge for close-ups).
+const MODES = {
+  thirds:{label:"Thirds",   size:.55, ty:.5},
+  center:{label:"Centered", size:.6,  tx:.5, ty:.5},
+  close: {label:"Close-up", size:.9,  tx:.5, ty:.07, top:true},
+  wide:  {label:"Wide",     size:.3,  ty:.56}
+};
 
-// ---------- state ----------
 const $ = id => document.getElementById(id);
-const video = $("v"), ov = $("ov"), ctx = ov.getContext("2d");
+const video = $("v"), ov = $("ov"), ctx = ov.getContext("2d"), hl = $("hl"), hctx = hl.getContext("2d");
+const scv = document.createElement("canvas"), sctx = scv.getContext("2d");
+const mcv = document.createElement("canvas"), mctx = mcv.getContext("2d");
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+
 const S = {
-  detector:null, dets:[], lastDetT:0,
-  mode:"auto", wantLabel:null, intentText:"",
-  subject:null,          // smoothed {x0,y0,x1,y1,label,src}
-  aiTarget:null,         // {box:[x0,y0,x1,y1] target, subject box tracked by gyro}
-  aiTip:"",
-  third:null,            // 1/3 or 2/3 chosen for current subject
-  frame:null,            // smoothed ideal frame rect (normalized)
-  roll:null, gFlip:1, gSamples:0, gSumY:0,
+  seg:null, ready:false, lastSegT:0, segMs:0,
+  key:null, box:null, areaRef:0, jump:0, lost:0, hasMask:false, tap:null,
+  mode:"thirds", side:null, ai:null, frame:null, aligned:false,
   lockSince:0, captured:false,
-  settings:{prov:"gemini",model:"",key:"",autoCap:false,showBoxes:true,debug:false}
+  roll:null, gFlip:1, gSamples:0, gSumY:0,
+  shown:"", shownT:0, intentText:"",
+  settings:{prov:"gemini",model:"",key:"",autoCap:false,showHl:true,debug:false}
 };
 try{ Object.assign(S.settings, JSON.parse(localStorage.getItem("fw.settings")||"{}")); }catch{}
 const saveSettings = () => { try{ localStorage.setItem("fw.settings", JSON.stringify(S.settings)); }catch{} };
 
-// ---------- camera ----------
 async function startCamera(){
   const stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1440}}});
   video.srcObject = stream;
   await video.play();
 }
 
-// ---------- motion (level + gyro tracking) ----------
 async function startMotion(){
   try{
     if (typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
       const r = await DeviceMotionEvent.requestPermission(); if (r!=="granted") return;
     }
   }catch{ return; }
-  let lastT = 0;
   window.addEventListener("devicemotion", e => {
     const g = e.accelerationIncludingGravity;
-    if (g && g.x!=null){
-      // Auto-detect sign convention: phone is held upright, so "up" should read positive y.
-      if (S.gSamples < 30 && Math.abs(g.y) > 6){ S.gSumY += g.y; S.gSamples++; S.gFlip = S.gSumY >= 0 ? 1 : -1; }
-      const ax = g.x*S.gFlip, ay = g.y*S.gFlip;
-      const r = Math.atan2(-ax, ay)*180/Math.PI;
-      S.roll = S.roll==null ? r : S.roll + (r - S.roll)*0.2;
-    }
-    // Shift AI-only subject box as the phone rotates (objects the on-device model can't track).
-    const rr = e.rotationRate, now = performance.now();
-    if (rr && S.aiTarget && lastT){
-      const dt = Math.min(0.1,(now-lastT)/1000), f = fov();
-      if (f){
-        const kx = 1/(2*Math.tan(f.h/2)) * Math.PI/180, ky = 1/(2*Math.tan(f.v/2)) * Math.PI/180;
-        const dx = (rr.gamma||0)*dt*kx, dy = (rr.beta||0)*dt*ky; // +gamma: camera pans left → scene moves right; +beta: tilts up → scene moves down
-        const b = S.aiTarget.subj; b[0]+=dx; b[2]+=dx; b[1]+=dy; b[3]+=dy;
-      }
-    }
-    lastT = now;
+    if (!g || g.x==null) return;
+    if (S.gSamples < 30 && Math.abs(g.y) > 6){ S.gSumY += g.y; S.gSamples++; S.gFlip = S.gSumY >= 0 ? 1 : -1; }
+    const r = Math.atan2(-g.x*S.gFlip, g.y*S.gFlip)*180/Math.PI;
+    S.roll = S.roll==null ? r : S.roll + (r - S.roll)*0.2;
   });
   $("levelPill").hidden = false;
 }
 
-// ---------- detector ----------
-async function loadDetector(){
+async function loadSegmenter(){
   setStatus("Loading AI");
-  const vision = await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
-  const files = await vision.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-  const opts = d => ({baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite", delegate:d},
-    runningMode:"VIDEO", scoreThreshold:0.35, maxResults:8});
-  try{ S.detector = await vision.ObjectDetector.createFromOptions(files, opts("GPU")); }
-  catch{ S.detector = await vision.ObjectDetector.createFromOptions(files, opts("CPU")); }
-  setStatus("Ready");
+  const vision = await import(`${CDN}/vision_bundle.mjs`);
+  const files = await vision.FilesetResolver.forVisionTasks(`${CDN}/wasm`);
+  const opts = d => ({baseOptions:{modelAssetPath:MODEL, delegate:d}, outputCategoryMask:false, outputConfidenceMasks:true});
+  try{ S.seg = await vision.InteractiveSegmenter.createFromOptions(files, opts("GPU")); }
+  catch{ S.seg = await vision.InteractiveSegmenter.createFromOptions(files, opts("CPU")); }
+  setStatus("Warming up");
+  await new Promise(r => setTimeout(r, 30));
+  const w = document.createElement("canvas"); w.width = scv.width || 160; w.height = scv.height || 320;
+  const wc = w.getContext("2d"); wc.fillStyle = "#777"; wc.fillRect(0,0,w.width,w.height); wc.fillStyle = "#c33"; wc.fillRect(w.width/4,w.height/4,w.width/2,w.height/2);
+  S.seg.segment(w, {keypoint:{x:.5,y:.5}}, () => {});
+  S.ready = true; setStatus("Ready");
 }
 
-// ---------- geometry ----------
-function view(){ // mapping from video pixels to normalized screen coords (object-fit: cover)
+function view(){
   const W = ov.clientWidth, H = ov.clientHeight, vw = video.videoWidth, vh = video.videoHeight;
-  if (!vw || !vh) return null;
+  if (!vw || !vh || !W || !H) return null;
   const s = Math.max(W/vw, H/vh), ox = (W - vw*s)/2, oy = (H - vh*s)/2;
   return {W,H,vw,vh,s,ox,oy};
 }
-function fov(){ // visible field of view in radians, assuming iPhone main camera (~26mm equiv, 4:3)
-  const m = view(); if (!m) return null;
-  const longF = 63*Math.PI/180;
-  const long = Math.max(m.vw,m.vh), short = Math.min(m.vw,m.vh);
-  const shortF = 2*Math.atan(Math.tan(longF/2)*short/long);
-  const vidH = m.vw>=m.vh ? longF : shortF, vidV = m.vw>=m.vh ? shortF : longF;
-  const visW = m.W/(m.vw*m.s), visH = m.H/(m.vh*m.s);
-  return {h:2*Math.atan(Math.tan(vidH/2)*visW), v:2*Math.atan(Math.tan(vidV/2)*visH)};
-}
-const toNorm = (bb, m) => [(bb.originX*m.s+m.ox)/m.W, (bb.originY*m.s+m.oy)/m.H, ((bb.originX+bb.width)*m.s+m.ox)/m.W, ((bb.originY+bb.height)*m.s+m.oy)/m.H];
-const iou = (a,b) => { const x0=Math.max(a[0],b[0]),y0=Math.max(a[1],b[1]),x1=Math.min(a[2],b[2]),y1=Math.min(a[3],b[3]);
-  const i=Math.max(0,x1-x0)*Math.max(0,y1-y0), u=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-i; return u>0?i/u:0; };
-const area = b => Math.max(0,b[2]-b[0])*Math.max(0,b[3]-b[1]);
-const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const crop = m => ({sx:Math.max(0,-m.ox/m.s), sy:Math.max(0,-m.oy/m.s), sw:m.W/m.s, sh:m.H/m.s});
 
-// ---------- intent ----------
-function parseIntent(t){
-  const s = t.toLowerCase();
-  let label = null;
-  for (const [lab,words] of Object.entries(SYN)) if (words.some(w => new RegExp(`\\b${w}\\b`).test(s))) { label = lab; break; }
-  if (!label) for (const c of COCO) if (s.includes(c)) { label = c; break; }
-  let mode = null;
-  if (/full body|whole body|head to toe|outfit|ootd/.test(s)) mode = "full";
-  else if (/close|headshot|portrait|face|selfie/.test(s)) mode = "portrait";
-  else if (/wide|background|landscape|scenery|in front of|with the|skyline|view/.test(s)) mode = "wide";
-  else if (/center|centre|symmetr/.test(s)) mode = "center";
-  return {label, mode};
+function sizeCanvases(){
+  const W = ov.clientWidth, H = ov.clientHeight, d = window.devicePixelRatio||1;
+  ov.width = W*d; ov.height = H*d; ctx.setTransform(d,0,0,d,0,0);
+  hl.width = W; hl.height = H;
+  const L = 320;
+  const mw = H >= W ? Math.round(L*W/H) : L, mh = H >= W ? L : Math.round(L*H/W);
+  if (scv.width !== mw || scv.height !== mh){ scv.width = mcv.width = mw; scv.height = mcv.height = mh; S.hasMask = false; }
+  drawHighlight();
 }
 
-// ---------- subject selection & tracking ----------
-function pickSubject(){
-  const prev = S.subject;
-  let cands = S.dets;
-  if (S.wantLabel) cands = cands.filter(d => d.label === S.wantLabel);
-  if (!cands.length){
-    if (prev && performance.now() - prev.seen < 700) return prev; // brief dropout: hold
-    return null;
+function segStep(){
+  const m = view(); if (!m) return;
+  const c = crop(m);
+  sctx.drawImage(video, c.sx, c.sy, c.sw, c.sh, 0, 0, scv.width, scv.height);
+  const t = performance.now();
+  try{
+    S.seg.segment(scv, {keypoint:S.key}, r => {
+      const cm = r.confidenceMasks && r.confidenceMasks[0];
+      if (cm) analyze(cm.getAsFloat32Array(), cm.width, cm.height);
+    });
+  }catch(e){ console.warn(e); }
+  S.segMs = performance.now() - t;
+}
+
+function analyze(a, w, h){
+  let n=0, sx=0, sy=0, x0=w, y0=h, x1=-1, y1=-1;
+  for (let y=0, i=0; y<h; y++) for (let x=0; x<w; x++, i++){
+    if (a[i] > .5){ n++; sx+=x; sy+=y; if (x<x0) x0=x; if (x>x1) x1=x; if (y<y0) y0=y; if (y>y1) y1=y; }
   }
-  let best = null, bestScore = -1;
-  for (const d of cands){
-    let sc = area(d.box)*2 + d.score*0.3 - Math.hypot((d.box[0]+d.box[2])/2-.5,(d.box[1]+d.box[3])/2-.5)*0.5;
-    if (prev && prev.label === d.label) sc += iou(prev.box, d.box)*3;           // stickiness
-    if (!S.wantLabel && d.label === "person") sc += 0.15;
-    if (S.aiTarget && S.aiTarget.label === d.label) sc += iou(S.aiTarget.subj, d.box)*3;
-    if (sc > bestScore){ bestScore = sc; best = d; }
+  const frac = n/(w*h);
+  let ok = n >= 12 && frac < .85;
+  if (ok && S.areaRef){
+    const r = frac/S.areaRef;
+    if (r > 2.5 || r < .4){ if (++S.jump < 5) ok = false; }
   }
-  const a = 0.4;
-  const box = prev && prev.label === best.label && iou(prev.box,best.box) > 0.1
-    ? prev.box.map((v,i) => v + (best.box[i]-v)*a) : best.box.slice();
-  if (!prev || prev.label !== best.label) S.third = null;
-  return {box, label:best.label, seen:performance.now(), src:"device"};
-}
+  if (!ok){ S.lost++; return; }
+  S.jump = 0; S.lost = 0;
+  S.areaRef = S.areaRef ? S.areaRef + (frac - S.areaRef)*.3 : frac;
 
-// Where the subject should sit in the perfect shot. Returns {ref:[x,y], refKind, size, metric}
-function targetFor(sub){
-  const b = sub.box, cx = (b[0]+b[2])/2, cy = (b[1]+b[3])/2;
-  if (S.third == null) S.third = cx < 0.5 ? 1/3 : 2/3;
-  let mode = S.mode;
-  if (sub.src === "ai") return null;
-  if (mode === "auto") mode = sub.label === "person" ? (b[3] > 0.97 || b[1] < 0.02 ? "portrait" : "full") : "object";
-  switch (mode){
-    case "portrait": return sub.label === "person"
-      ? {tx:0.5, ty:0.13, refY:"top", metric:"w", size:0.56, mode}
-      : {tx:S.third, ty:0.45, refY:"c", metric:"a", size:0.62, mode};
-    case "full":   return {tx:0.5, ty:0.53, refY:"c", metric:"h", size:0.76, mode};
-    case "wide":   return {tx:S.third, ty:0.6, refY:"c", metric:"h", size:sub.label==="person"?0.36:0.28, mode};
-    case "center": return {tx:0.5, ty:0.5, refY:"c", metric:"a", size:0.45, mode};
-    default:       return {tx:S.third, ty:0.5, refY:"c", metric:"a", size:0.42, mode:"object"};
+  if (mcv.width !== w || mcv.height !== h){ mcv.width = w; mcv.height = h; }
+  const img = mctx.createImageData(w, h), d = img.data;
+  for (let i=0; i<a.length; i++){
+    const v = a[i], al = v <= .35 ? 0 : v >= .65 ? 255 : (v-.35)/.3*255;
+    const j = i*4; d[j] = d[j+1] = d[j+2] = 255; d[j+3] = al;
   }
-}
-const metricOf = (b,k) => k==="h" ? b[3]-b[1] : k==="w" ? b[2]-b[0] : Math.sqrt(area(b));
+  mctx.putImageData(img, 0, 0);
+  S.hasMask = true;
 
-// Ideal frame in current-view normalized coords.
-function idealFrame(sub){
-  const b = sub.box;
-  let t, cur;
-  if (sub.src === "ai" && S.aiTarget){
-    const T = S.aiTarget.target;
-    t = {tx:(T[0]+T[2])/2, ty:(T[1]+T[3])/2, refY:"c", metric:"a", size:Math.sqrt(area(T))};
-  } else t = targetFor(sub);
-  if (!t) return null;
-  cur = metricOf(b, t.metric);
-  if (cur < 0.01) return null;
-  const s = t.size / cur;              // >1: subject must get bigger (closer)
-  const fw = 1/s, fh = 1/s;
-  const rx = (b[0]+b[2])/2, ry = t.refY === "top" ? b[1] : (b[1]+b[3])/2;
-  return {x0: rx - t.tx*fw, y0: ry - t.ty*fh, w: fw, h: fh, s, mode:t.mode};
-}
+  const raw = [x0/w, y0/h, (x1+1)/w, (y1+1)/h];
+  S.box = S.box ? S.box.map((v,i) => v + (raw[i]-v)*.45) : raw;
 
-// ---------- guidance text ----------
-function guidance(F, sub){
-  const f = fov();
-  const dx = F.x0 + F.w/2 - 0.5, dy = F.y0 + F.h/2 - 0.5;
-  const pan = f ? Math.atan(2*dx*Math.tan(f.h/2))*180/Math.PI : dx*60;
-  const tilt = f ? -Math.atan(2*dy*Math.tan(f.v/2))*180/Math.PI : -dy*60;
-  const parts = [];
-  if (Math.abs(pan) > 1.5) parts.push({mag:Math.abs(pan)/1.5, txt:`Pan ${pan>0?"right":"left"} ${Math.round(Math.abs(pan))}°`});
-  if (Math.abs(tilt) > 1.5) parts.push({mag:Math.abs(tilt)/1.5, txt:`Tilt ${tilt>0?"up":"down"} ${Math.round(Math.abs(tilt))}°`});
-  const ds = F.s;
-  if (Math.abs(ds-1) > 0.1){
-    let txt;
-    const b = sub.box;
-    const fullPerson = sub.label === "person" && b[1] > 0.02 && b[3] < 0.98 && f;
-    if (fullPerson){
-      const dist = 1.7 / ((b[3]-b[1]) * 2*Math.tan(f.v/2));
-      const move = dist - dist/ds;
-      txt = move > 0 ? `Step closer ~${fmtM(move)}` : `Step back ~${fmtM(-move)}`;
-    } else {
-      const pct = Math.round(Math.abs(1-1/ds)*100);
-      txt = ds > 1 ? `Move closer (${pct}% of the way)` : `Step back (~${Math.min(pct,300)}% farther)`;
+  let cx = Math.round(sx/n), cy = Math.round(sy/n);
+  if (!(a[cy*w+cx] > .5)){
+    let best = Infinity, bx = cx, by = cy;
+    for (let y=y0; y<=y1; y++) for (let x=x0; x<=x1; x++){
+      if (a[y*w+x] > .5){ const dd = (x-cx)*(x-cx)+(y-cy)*(y-cy); if (dd < best){ best = dd; bx = x; by = y; } }
     }
-    parts.push({mag:Math.abs(Math.log(ds))/0.1, txt});
+    cx = bx; cy = by;
   }
-  const levelOff = S.roll != null && Math.abs(S.roll) > 2.5;
-  if (levelOff) parts.push({mag:Math.abs(S.roll)/2.5, txt:`Rotate ${S.roll>0?"left":"right"} ${Math.round(Math.abs(S.roll))}° to level`});
-  parts.sort((a,b) => b.mag - a.mag);
-  return {parts, pan, tilt, ds, aligned: parts.length === 0};
+  S.key = {x:(cx+.5)/w, y:(cy+.5)/h};
+  drawHighlight();
 }
-const fmtM = m => m < 1 ? `${Math.round(m*100/10)*10} cm` : `${m.toFixed(1)} m`;
 
-// ---------- drawing ----------
-function resize(){
-  const d = window.devicePixelRatio||1;
-  ov.width = ov.clientWidth*d; ov.height = ov.clientHeight*d; ctx.setTransform(d,0,0,d,0,0);
+function drawHighlight(){
+  const W = hl.width, H = hl.height;
+  hctx.clearRect(0,0,W,H);
+  if (!S.settings.showHl || !S.hasMask || !S.key) return;
+  hctx.save();
+  hctx.imageSmoothingEnabled = true; hctx.imageSmoothingQuality = "high";
+  hctx.shadowColor = "rgba(255,255,255,.95)"; hctx.shadowBlur = 18;
+  hctx.drawImage(mcv,0,0,W,H); hctx.drawImage(mcv,0,0,W,H);
+  hctx.shadowBlur = 0; hctx.shadowColor = "transparent";
+  hctx.globalCompositeOperation = "destination-out"; hctx.drawImage(mcv,0,0,W,H);
+  hctx.globalCompositeOperation = "destination-over"; hctx.fillStyle = "rgba(0,0,0,.3)"; hctx.fillRect(0,0,W,H);
+  hctx.globalCompositeOperation = "destination-out"; hctx.drawImage(mcv,0,0,W,H);
+  hctx.restore();
 }
+
+function selectAt(x, y){
+  S.key = {x, y}; S.tap = {x, y, t:performance.now()};
+  S.box = null; S.hasMask = false; S.areaRef = 0; S.jump = 0; S.lost = 0;
+  S.side = null; S.ai = null; S.frame = null; S.aligned = false;
+  drawHighlight(); showTip("");
+  $("clearSel").hidden = false;
+}
+function clearSelection(){
+  S.key = null; S.tap = null; S.box = null; S.hasMask = false; S.ai = null; S.frame = null; S.aligned = false;
+  drawHighlight(); showTip("");
+  $("clearSel").hidden = true;
+}
+
+function idealFrame(b){
+  const bw = b[2]-b[0], bh = b[3]-b[1], cx = (b[0]+b[2])/2, cy = (b[1]+b[3])/2;
+  if (S.ai){
+    const T = S.ai, cur = Math.sqrt(bw*bh);
+    if (cur < .01) return null;
+    const s = Math.sqrt(Math.max(0,(T[2]-T[0])*(T[3]-T[1])))/cur, f = 1/s;
+    return {x0:cx-(T[0]+T[2])/2*f, y0:cy-(T[1]+T[3])/2*f, w:f, h:f, s};
+  }
+  const M = MODES[S.mode];
+  if (S.side == null) S.side = cx < .5 ? 1/3 : 2/3;
+  const tx = M.tx ?? S.side;
+  const cut = b[0] < .01 || b[1] < .01 || b[2] > .99 || b[3] > .99;
+  let cur = Math.max(bw, bh);
+  if (cut && !M.top) cur = Math.max(cur, 1.15);
+  if (cur < .02) return null;
+  const s = M.size/cur, f = 1/s;
+  const ry = M.top ? b[1] : cy;
+  return {x0:cx-tx*f, y0:ry-M.ty*f, w:f, h:f, s};
+}
+
+function guidance(F){
+  const dx = F.x0 + F.w/2 - .5, dy = F.y0 + F.h/2 - .5, z = Math.log(F.s);
+  const P = S.aligned ? .075 : .045, Z = S.aligned ? .22 : .14, R = S.aligned ? 4 : 2.5;
+  const mv = [];
+  if (Math.abs(dx) > P) mv.push({m:Math.abs(dx)/P, kind:"aim", dir:dx>0?"right":"left", big:Math.abs(dx)>.15});
+  if (Math.abs(dy) > P) mv.push({m:Math.abs(dy)/P, kind:"aim", dir:dy>0?"down":"up", big:Math.abs(dy)>.15});
+  if (Math.abs(z) > Z) mv.push({m:Math.abs(z)/Z, kind:z>0?"closer":"back", big:Math.abs(z)>.4});
+  if (S.roll != null && Math.abs(S.roll) > R) mv.push({m:Math.abs(S.roll)/R*.8, kind:"level"});
+  mv.sort((a,b) => b.m - a.m);
+  return {mv, dx, dy, z, aligned: mv.length === 0};
+}
+const say = p => p.kind === "aim" ? `Aim ${p.big ? "" : "a bit "}${p.dir}`
+  : p.kind === "closer" ? (p.big ? "Move closer" : "Move a bit closer")
+  : p.kind === "back" ? (p.big ? "Step back" : "Step back a little")
+  : "Straighten the phone";
+
 function bracket(x,y,dx,dy,len,color,w){
   ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = "round";
   ctx.beginPath(); ctx.moveTo(x, y+dy*len); ctx.lineTo(x,y); ctx.lineTo(x+dx*len,y); ctx.stroke();
@@ -413,39 +399,21 @@ function arrow(x,y,ang,color){
   ctx.save(); ctx.translate(x,y); ctx.rotate(ang); ctx.fillStyle = color;
   ctx.beginPath(); ctx.moveTo(10,0); ctx.lineTo(-7,-8); ctx.lineTo(-3,0); ctx.lineTo(-7,8); ctx.closePath(); ctx.fill(); ctx.restore();
 }
-function draw(F, locked){
+function draw(F, locked, now){
   const W = ov.clientWidth, H = ov.clientHeight;
   ctx.clearRect(0,0,W,H);
   const css = getComputedStyle(document.documentElement);
   const AIM = css.getPropertyValue("--aim").trim(), LOCK = css.getPropertyValue("--lock").trim();
-  const topPad = 0, inset = 22;
+  const inset = 22;
 
-  // detected objects (faint)
-  if (S.settings.showBoxes){
-    ctx.font = "500 11px DM Mono, ui-monospace, monospace";
-    for (const d of S.dets){
-      const [x0,y0,x1,y1] = d.box; const isSub = S.subject && iou(S.subject.box,d.box) > 0.5;
-      ctx.strokeStyle = isSub ? "rgba(255,255,255,.75)" : "rgba(255,255,255,.28)"; ctx.lineWidth = 1;
-      ctx.setLineDash(isSub ? [] : [4,4]); ctx.strokeRect(x0*W,y0*H,(x1-x0)*W,(y1-y0)*H); ctx.setLineDash([]);
-      ctx.fillStyle = isSub ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)"; ctx.fillText(d.label.toUpperCase(), x0*W+4, y0*H+13);
-    }
-    if (S.subject && S.subject.src === "ai"){
-      const [x0,y0,x1,y1] = S.subject.box; ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.strokeRect(x0*W,y0*H,(x1-x0)*W,(y1-y0)*H);
-      ctx.fillStyle = "rgba(255,255,255,.9)"; ctx.fillText((S.subject.label||"subject").toUpperCase(), x0*W+4, y0*H+13);
-    }
-  }
-
-  // screen corners: your current frame
   const cc = locked ? LOCK : "rgba(255,255,255,.55)";
-  bracket(inset,inset+topPad,1,1,26,cc,2.5); bracket(W-inset,inset+topPad,-1,1,26,cc,2.5);
+  bracket(inset,inset,1,1,26,cc,2.5); bracket(W-inset,inset,-1,1,26,cc,2.5);
   bracket(inset,H-inset,1,-1,26,cc,2.5); bracket(W-inset,H-inset,-1,-1,26,cc,2.5);
 
-  // center crosshair
   const cx = W/2, cy = H/2;
   ctx.strokeStyle = locked ? LOCK : "rgba(255,255,255,.8)"; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(cx-10,cy); ctx.lineTo(cx+10,cy); ctx.moveTo(cx,cy-10); ctx.lineTo(cx,cy+10); ctx.stroke();
 
-  // level line
   if (S.roll != null){
     const r = -S.roll*Math.PI/180, L = Math.min(W,H)*0.18, ok = Math.abs(S.roll) <= 2.5;
     ctx.save(); ctx.translate(cx,cy); ctx.rotate(r);
@@ -453,8 +421,13 @@ function draw(F, locked){
     ctx.beginPath(); ctx.moveTo(-L,0); ctx.lineTo(-22,0); ctx.moveTo(22,0); ctx.lineTo(L,0); ctx.stroke(); ctx.restore();
   }
 
+  if (S.tap && !S.hasMask){
+    const k = ((now - S.tap.t) % 900)/900;
+    ctx.strokeStyle = `rgba(255,255,255,${.9*(1-k)})`; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(S.tap.x*W, S.tap.y*H, 10 + 26*k, 0, Math.PI*2); ctx.stroke();
+  }
+
   if (!F || locked) return;
-  // ideal frame brackets (gold), clamped to stay visible
   const fx0 = F.x0*W, fy0 = F.y0*H, fx1 = (F.x0+F.w)*W, fy1 = (F.y0+F.h)*H;
   const len = clamp(Math.min(fx1-fx0, fy1-fy0)*0.12, 16, 40);
   const corners = [[fx0,fy0,1,1],[fx1,fy0,-1,1],[fx0,fy1,1,-1],[fx1,fy1,-1,-1]];
@@ -464,82 +437,70 @@ function draw(F, locked){
     if (inside) bracket(x,y,dx,dy,len,AIM,3.5);
     else { const px = clamp(x,m+8,W-m-8), py = clamp(y,m+8,H-m-8); arrow(px,py,Math.atan2(y-py,x-px),AIM); }
   }
-  // ideal center dot + tether to crosshair
   const ix = (fx0+fx1)/2, iy = (fy0+fy1)/2;
   ctx.strokeStyle = "rgba(255,194,61,.5)"; ctx.lineWidth = 1.5; ctx.setLineDash([3,5]);
   ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(clamp(ix,0,W),clamp(iy,0,H)); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle = AIM; ctx.beginPath(); ctx.arc(clamp(ix,6,W-6),clamp(iy,6,H-6),5,0,Math.PI*2); ctx.fill();
 }
 
-// ---------- main loop ----------
-function setStatus(t){ $("status").innerHTML = t; }
+function setStatus(t){ $("status").textContent = t; }
+function setMain(text, now, force){
+  if (text === S.shown) return;
+  if (!force && now - S.shownT < 400) return;
+  S.shown = text; S.shownT = now; $("gMain").textContent = text;
+}
+
 function loop(now){
   requestAnimationFrame(loop);
-  const m = view(); if (!m) return;
-  // detection ~15fps
-  if (S.detector && now - S.lastDetT > 66 && video.readyState >= 2){
-    S.lastDetT = now;
-    try{
-      const r = S.detector.detectForVideo(video, now);
-      S.dets = r.detections.map(d => ({box:toNorm(d.boundingBox,m), label:d.categories[0].categoryName, score:d.categories[0].score}));
-    }catch{}
-  }
-  // subject
-  let sub = pickSubject();
-  if (S.aiTarget){
-    const devMatch = sub && sub.label === S.aiTarget.label;
-    if (devMatch){ S.aiTarget.subj = sub.box.slice(); sub = {...sub, src:"ai"}; }
-    else sub = {box:S.aiTarget.subj, label:S.aiTarget.label, seen:now, src:"ai"};
-  }
-  S.subject = sub;
+  if (!view()) return;
+  if (S.ready && S.key && now - S.lastSegT > 60){ S.lastSegT = now; segStep(); }
+  hl.classList.toggle("lost", S.lost > 10);
 
+  const lost = S.lost > 20;
   let F = null, g = null;
-  if (sub){
-    const raw = idealFrame(sub);
+  if (S.key && S.hasMask && S.box && !lost){
+    const raw = idealFrame(S.box);
     if (raw){
-      F = S.frame ? {x0:S.frame.x0+(raw.x0-S.frame.x0)*.25, y0:S.frame.y0+(raw.y0-S.frame.y0)*.25, w:S.frame.w+(raw.w-S.frame.w)*.25, h:S.frame.h+(raw.h-S.frame.h)*.25, s:raw.s, mode:raw.mode} : raw;
+      const p = S.frame;
+      F = p ? {x0:p.x0+(raw.x0-p.x0)*.3, y0:p.y0+(raw.y0-p.y0)*.3, w:p.w+(raw.w-p.w)*.3, h:p.h+(raw.h-p.h)*.3, s:p.s+(raw.s-p.s)*.3} : raw;
       S.frame = F;
-      g = guidance(F, sub);
+      g = guidance(F);
     }
   } else S.frame = null;
 
   const locked = !!(g && g.aligned);
-  draw(F, locked);
+  const changed = locked !== S.aligned;
+  S.aligned = locked;
+  draw(F, locked, now);
 
-  // readout
-  const gd = $("guide");
-  if (!S.detector){ $("gMain").textContent = "Loading on-device AI…"; $("gSub").textContent = ""; }
-  else if (!sub){
-    $("gMain").textContent = S.wantLabel ? `Looking for: ${S.wantLabel}` : "Point at your subject";
-    $("gSub").textContent = S.wantLabel ? "" : "or tell me what you’re shooting";
-  } else if (g){
-    $("gMain").textContent = locked ? "Perfect. Hold still" : g.parts.slice(0,2).map(p=>p.txt).join(" · ");
-    const label = sub.label ? sub.label.toUpperCase() : "SUBJECT";
-    const modeTxt = sub.src === "ai" ? "AI FRAME" : (F.mode||"").toUpperCase();
-    $("gSub").textContent = S.settings.debug
-      ? `${label} · ${modeTxt} · pan ${g.pan.toFixed(1)}° tilt ${g.tilt.toFixed(1)}° scale ${g.ds.toFixed(2)} roll ${S.roll==null?"–":S.roll.toFixed(1)}°`
-      : `${label} · ${modeTxt}`;
+  const sub = $("gSub");
+  if (!S.key){ setMain("Tap what you want to photograph", now, true); sub.textContent = S.ready ? "" : "Loading on-device AI…"; }
+  else if (!S.ready){ setMain("Loading on-device AI…", now, true); sub.textContent = ""; }
+  else if (lost){ setMain("Lost it. Tap your subject again", now, true); sub.textContent = ""; }
+  else if (!S.hasMask){ setMain("Finding your subject…", now, true); sub.textContent = ""; }
+  else if (g){
+    setMain(locked ? "Perfect. Hold still" : say(g.mv[0]), now, changed);
+    const modeTxt = S.ai ? "AI FRAME" : MODES[S.mode].label.toUpperCase();
+    sub.textContent = S.settings.debug
+      ? `${modeTxt} · dx ${g.dx.toFixed(2)} dy ${g.dy.toFixed(2)} zoom ${g.z.toFixed(2)} roll ${S.roll==null?"–":S.roll.toFixed(1)}° · ${S.segMs.toFixed(0)}ms`
+      : (!locked && g.mv[1] ? `then ${say(g.mv[1]).toLowerCase()}` : modeTxt);
   }
-  gd.classList.toggle("locked", locked);
+  $("guide").classList.toggle("locked", locked);
   $("shutter").classList.toggle("locked", locked);
   if (S.roll != null) $("levelVal").textContent = `${Math.round(S.roll)}°`;
 
-  // auto-capture
   if (locked){
     if (!S.lockSince) S.lockSince = now;
     if (S.settings.autoCap && !S.captured && now - S.lockSince > 900){ S.captured = true; capture(); }
   } else { S.lockSince = 0; S.captured = false; }
 }
 
-// ---------- capture ----------
 let lastBlob = null, lastURL = null;
 async function capture(){
   if (!video.videoWidth) return;
-  const m = view();
-  // crop to what the screen shows (object-fit: cover) at full video resolution
-  const sx = Math.max(0,-m.ox/m.s), sy = Math.max(0,-m.oy/m.s), sw = m.W/m.s, sh = m.H/m.s;
-  const c = document.createElement("canvas"); c.width = Math.round(sw); c.height = Math.round(sh);
-  c.getContext("2d").drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const c0 = crop(view());
+  const c = document.createElement("canvas"); c.width = Math.round(c0.sw); c.height = Math.round(c0.sh);
+  c.getContext("2d").drawImage(video, c0.sx, c0.sy, c0.sw, c0.sh, 0, 0, c.width, c.height);
   flash();
   lastBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.95));
   if (lastURL) URL.revokeObjectURL(lastURL);
@@ -561,23 +522,22 @@ async function savePhoto(){
   $("saveNote").textContent = "Press and hold the photo, then choose “Save to Photos”.";
 }
 
-// ---------- AI scene reading ----------
 function frameJPEG(maxSide=640){
-  const m = view();
-  const sx = Math.max(0,-m.ox/m.s), sy = Math.max(0,-m.oy/m.s), sw = m.W/m.s, sh = m.H/m.s;
-  const k = maxSide/Math.max(sw,sh);
-  const c = document.createElement("canvas"); c.width = Math.round(sw*k); c.height = Math.round(sh*k);
-  c.getContext("2d").drawImage(video, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const c0 = crop(view());
+  const k = maxSide/Math.max(c0.sw,c0.sh);
+  const c = document.createElement("canvas"); c.width = Math.round(c0.sw*k); c.height = Math.round(c0.sh*k);
+  c.getContext("2d").drawImage(video, c0.sx, c0.sy, c0.sw, c0.sh, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", 0.8).split(",")[1];
 }
 function aiPrompt(){
+  const sel = S.key && S.box ? `The user has tapped a subject; its current box is [${S.box.map(v=>v.toFixed(2)).join(",")}].` : "No subject is selected yet.";
   return `You are a photography director looking through a phone camera (portrait orientation). The image is exactly what the screen shows.
 User's goal: ${S.intentText ? `"${S.intentText}"` : "not specified — pick the most photogenic subject and composition in view"}.
+${sel}
 Decide the main subject and where it should sit in the ideal photo. Coordinates are normalized 0..1 of THIS image, origin top-left, [x0,y0,x1,y1].
 - subject_box: where the subject is now.
-- target_box: where the subject should be in the perfect shot, keeping the same aspect proportions as subject_box (it may be larger/smaller and may extend past the edges if the subject should be cropped). Use rule of thirds, leading room toward where the subject looks or moves, and headroom.
-- coco_label: one of [${COCO.join(", ")}] if the subject is one of those, else null.
-Reply with ONLY JSON: {"subject":"short name","coco_label":string|null,"subject_box":[..],"target_box":[..],"tip":"one short, specific instruction about light, background or timing (max 14 words)"}`;
+- target_box: where the subject should be in the perfect shot, keeping the same proportions as subject_box (it may be larger/smaller and may extend past the edges if the subject should be cropped). Use rule of thirds, leading room toward where the subject looks or moves, and headroom.
+Reply with ONLY JSON: {"subject":"short name","subject_box":[..],"target_box":[..],"tip":"one short, specific instruction about light, background or timing (max 14 words)"}`;
 }
 async function askAI(){
   const {prov, key} = S.settings, model = S.settings.model || FALLBACK_MODELS[prov];
@@ -603,9 +563,9 @@ async function askAI(){
     const js = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}")+1));
     const ok = a => Array.isArray(a) && a.length === 4 && a.every(Number.isFinite);
     if (!ok(js.subject_box) || !ok(js.target_box)) throw new Error("AI reply had no usable boxes");
-    S.aiTarget = {label: js.coco_label && COCO.includes(js.coco_label) ? js.coco_label : (js.subject||"subject"), subj:js.subject_box.slice(), target:js.target_box.slice()};
-    S.wantLabel = js.coco_label && COCO.includes(js.coco_label) ? js.coco_label : null;
-    S.frame = null;
+    const b = js.subject_box;
+    selectAt(clamp((b[0]+b[2])/2,.01,.99), clamp((b[1]+b[3])/2,.01,.99));
+    S.ai = js.target_box.slice();
     showTip(js.tip ? `${js.subject ? js.subject + ": " : ""}${js.tip}` : "");
     setStatus("AI frame set");
   }catch(e){
@@ -615,26 +575,33 @@ async function askAI(){
 }
 function showTip(t){ const el = $("gTip"); el.textContent = t; el.hidden = !t; }
 
-// ---------- UI wiring ----------
+function parseMode(t){
+  const s = t.toLowerCase();
+  if (/close|headshot|portrait|face|selfie|detail/.test(s)) return "close";
+  if (/wide|background|landscape|scenery|in front of|skyline|view|whole scene/.test(s)) return "wide";
+  if (/center|centre|symmetr|middle/.test(s)) return "center";
+  if (/third|full body|whole body|head to toe|outfit/.test(s)) return "thirds";
+  return null;
+}
 function setMode(mode){
-  S.mode = mode; S.third = null; S.frame = null; S.aiTarget = null; showTip("");
+  S.mode = mode; S.side = null; S.frame = null; S.ai = null; showTip("");
   document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.mode === mode)));
 }
 document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => setMode(c.dataset.mode)));
 $("ask").addEventListener("submit", e => {
   e.preventDefault();
   const t = $("intent").value.trim(); $("intent").blur();
-  S.intentText = t; S.aiTarget = null; S.frame = null; showTip("");
-  const {label, mode} = parseIntent(t);
-  S.wantLabel = label; setMode(mode || "auto");
+  S.intentText = t;
+  const mode = parseMode(t);
+  if (mode) setMode(mode);
   if (t && S.settings.prov !== "none" && S.settings.key) askAI();
-  else if (t && !label) showTip("I can’t track that on-device yet. Add an AI key in Settings and tap Read scene.");
+  else if (!S.key) showTip("Now tap your subject on the screen.");
 });
-ov.addEventListener("click", e => { // tap a detected object to make it the subject
-  const x = e.offsetX/ov.clientWidth, y = e.offsetY/ov.clientHeight;
-  const hit = S.dets.filter(d => x>=d.box[0]&&x<=d.box[2]&&y>=d.box[1]&&y<=d.box[3]).sort((a,b)=>area(a.box)-area(b.box))[0];
-  if (hit){ S.wantLabel = hit.label; S.aiTarget = null; S.subject = {box:hit.box.slice(),label:hit.label,seen:performance.now(),src:"device"}; S.third = null; S.frame = null; showTip(""); }
+ov.addEventListener("click", e => {
+  const r = ov.getBoundingClientRect();
+  selectAt(clamp((e.clientX-r.left)/r.width,0,1), clamp((e.clientY-r.top)/r.height,0,1));
 });
+$("clearSel").addEventListener("click", clearSelection);
 $("shutter").addEventListener("click", capture);
 $("thumb").addEventListener("click", () => { if (lastURL) $("result").hidden = false; });
 $("retake").addEventListener("click", () => { $("result").hidden = true; });
@@ -644,23 +611,23 @@ $("aiBtn").addEventListener("click", askAI);
 function openSettings(){
   const st = S.settings;
   $("prov").value = st.prov; $("key").value = st.key; $("model").value = st.model || ""; $("model").placeholder = FALLBACK_MODELS[st.prov] || "";
-  $("autoCap").checked = st.autoCap; $("showBoxes").checked = st.showBoxes; $("debug").checked = st.debug;
+  $("autoCap").checked = st.autoCap; $("showHl").checked = st.showHl; $("debug").checked = st.debug;
   $("settings").hidden = false;
 }
 $("openSettings").addEventListener("click", openSettings);
 $("prov").addEventListener("change", () => { $("model").placeholder = FALLBACK_MODELS[$("prov").value] || ""; });
 $("closeSettings").addEventListener("click", () => {
   Object.assign(S.settings, {prov:$("prov").value, key:$("key").value.trim(), model:$("model").value.trim(),
-    autoCap:$("autoCap").checked, showBoxes:$("showBoxes").checked, debug:$("debug").checked});
-  saveSettings(); $("settings").hidden = true;
+    autoCap:$("autoCap").checked, showHl:$("showHl").checked, debug:$("debug").checked});
+  saveSettings(); $("settings").hidden = true; drawHighlight();
 });
 document.querySelectorAll(".sheet").forEach(s => s.addEventListener("click", e => { if (e.target === s) s.hidden = true; }));
 
-window.addEventListener("resize", () => { resize(); S.frame = null; });
+window.addEventListener("resize", () => { sizeCanvases(); S.frame = null; });
 
 $("go").addEventListener("click", async () => {
   const err = $("startErr"); err.hidden = true;
-  const motion = startMotion();       // must be called inside the tap for iOS permission
+  const motion = startMotion();
   try{ await startCamera(); }
   catch(e){
     err.textContent = location.protocol !== "https:" && location.hostname !== "localhost"
@@ -668,9 +635,9 @@ $("go").addEventListener("click", async () => {
       : `Camera unavailable: ${e.message}. Check Settings › Safari › Camera.`;
     err.hidden = false; return;
   }
-  $("start").hidden = true; resize(); requestAnimationFrame(loop);
+  $("start").hidden = true; sizeCanvases(); requestAnimationFrame(loop);
   await motion;
-  loadDetector().catch(e => { setStatus("AI failed"); showTip(`On-device AI didn’t load: ${e.message}`); });
+  loadSegmenter().catch(e => { setStatus("AI failed"); showTip(`On-device AI didn’t load: ${e.message}`); });
 });
 </script>
 </body>
