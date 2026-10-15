@@ -483,7 +483,7 @@ function drawGizmo(onView){
   $("gzTxt").textContent = parts.length ? parts.join("  ") : "On angle";
 }
 let gzDrag = null;
-gz.addEventListener("pointerdown", e => { if (!S.vp) return; gzDrag = {x:e.clientX, y:e.clientY, az:S.target.az, el:S.target.el}; gz.setPointerCapture(e.pointerId); e.preventDefault(); });
+gz.addEventListener("pointerdown", e => { if (!S.vp) return; gzDrag = {x:e.clientX, y:e.clientY, az:S.target.az, el:S.target.el}; e.preventDefault(); try{ gz.setPointerCapture(e.pointerId); }catch{} });
 gz.addEventListener("pointermove", e => { if (!gzDrag) return;
   S.target.az = gzDrag.az + (e.clientX - gzDrag.x)*1.5; S.target.el = clamp(gzDrag.el - (e.clientY - gzDrag.y)*1.2, -60, 88); S.viewSet = true; });
 gz.addEventListener("pointerup", () => { gzDrag = null; });
@@ -501,6 +501,11 @@ function guidance(F){
     if (Math.abs(dEl) > tEl){ onView = false; mv.push({m:10 + Math.abs(dEl)/tEl, kind:"height", dir:dEl>0?"up":"down"}); }
   }
   S.onView = onView;
+  if (!onView && S.box){ // while walking around or changing height, keep the subject in view first
+    const sx = (S.box[0]+S.box[2])/2 - .5, sy = (S.box[1]+S.box[3])/2 - .5;
+    if (Math.abs(sx) > .3) mv.push({m:30, kind:"aim", dir:sx>0?"right":"left", big:true});
+    if (Math.abs(sy) > .3) mv.push({m:29, kind:"aim", dir:sy>0?"down":"up", big:true});
+  }
   if (Math.abs(dx) > P) mv.push({m:Math.abs(dx)/P, kind:"aim", dir:dx>0?"right":"left", big:Math.abs(dx)>.15});
   if (Math.abs(dy) > P) mv.push({m:Math.abs(dy)/P, kind:"aim", dir:dy>0?"down":"up", big:Math.abs(dy)>.15});
   if (Math.abs(z) > Z) mv.push({m:Math.abs(z)/Z, kind:z>0?"closer":"back", big:Math.abs(z)>.4});
@@ -509,7 +514,7 @@ function guidance(F){
   return {mv, dx, dy, z, aligned: mv.length === 0};
 }
 const say = p => p.kind === "orbit" ? `Walk ${p.dir} around it ~${Math.max(5,p.deg)}°`
-  : p.kind === "height" ? (p.dir === "up" ? "Raise the phone higher" : "Lower the phone")
+  : p.kind === "height" ? (p.dir === "up" ? "Raise the phone higher" : "Lower the phone, keep it in view")
   : p.kind === "aim" ? `Aim ${p.big ? "" : "a bit "}${p.dir}`
   : p.kind === "closer" ? (p.big ? "Move closer" : "Move a bit closer")
   : p.kind === "back" ? (p.big ? "Step back" : "Step back a little")
