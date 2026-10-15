@@ -41,6 +41,9 @@ button{cursor:pointer}
   padding:6px 12px;font:500 12px/1.2 var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
 .pill b{color:var(--fg);font-weight:500}
 button.pill{color:var(--fg)}
+#autoBtn[aria-pressed="true"]{background:var(--lock);color:#06210f}
+#autoBtn[aria-pressed="true"] b{color:#06210f}
+.why{margin:0;font-size:14px;line-height:1.45;color:var(--fg);white-space:pre-line}
 .spacer{flex:1}
 .icon{width:38px;height:38px;border-radius:50%;border:0;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center}
 .icon svg{width:20px;height:20px}
@@ -119,6 +122,7 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   <span class="pill" id="levelPill" hidden>Level <b id="levelVal">0°</b></span>
   <span class="spacer"></span>
   <button class="pill" id="clearSel" hidden>Clear ✕</button>
+  <button class="pill" id="autoBtn" aria-pressed="false" aria-label="Auto-shoot when the frame is perfect">Auto <b>Off</b></button>
   <button class="icon" id="openSettings" aria-label="Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
@@ -159,7 +163,6 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
       <select id="prov"><option value="gemini">Google Gemini (has a free tier)</option><option value="claude">Anthropic Claude</option><option value="none">Off</option></select></div>
     <div class="field"><label for="model">Model</label><input id="model" type="text" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label for="key">API key</label><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"></div>
-    <label class="toggle">Auto-capture when aligned <input id="autoCap" type="checkbox"></label>
     <label class="toggle">Glow around the subject <input id="showHl" type="checkbox" checked></label>
     <label class="toggle">Show debug numbers <input id="debug" type="checkbox"></label>
     <div class="btns"><button class="btn" id="closeSettings">Done</button></div>
@@ -169,8 +172,10 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 <div class="sheet" id="result" hidden>
   <div class="panel">
     <img class="shot" id="shotImg" alt="Captured photo">
+    <p class="why" id="why"></p>
     <div class="btns"><button class="btn ghost" id="retake">Retake</button><button class="btn" id="save">Save to Photos</button></div>
-    <p class="note" id="saveNote">Tap Save, then “Save Image” in the share sheet. You can also press and hold the photo.</p>
+    <button class="btn ghost" id="review">Send for review</button>
+    <p class="note" id="saveNote">“Send for review” shares the photo plus a marked-up copy that explains the framing. Save both, then attach them in your Claude chat.</p>
   </div>
 </div>
 
@@ -469,6 +474,7 @@ function loop(now){
   } else S.frame = null;
 
   const locked = !!(g && g.aligned);
+  S.g = g;
   const changed = locked !== S.aligned;
   S.aligned = locked;
   draw(F, locked, now);
@@ -491,22 +497,127 @@ function loop(now){
 
   if (locked){
     if (!S.lockSince) S.lockSince = now;
-    if (S.settings.autoCap && !S.captured && now - S.lockSince > 900){ S.captured = true; capture(); }
+    if (S.settings.autoCap && !S.captured && now - S.lockSince > 150 && $("result").hidden){ S.captured = true; capture(true); }
   } else { S.lockSince = 0; S.captured = false; }
 }
 
-let lastBlob = null, lastURL = null;
-async function capture(){
+let lastBlob = null, lastURL = null, reviewBlob = null, lastInfo = null;
+const toBlob = (c, q) => new Promise(r => c.toBlob(r, "image/jpeg", q));
+async function capture(auto){
   if (!video.videoWidth) return;
   const c0 = crop(view());
   const c = document.createElement("canvas"); c.width = Math.round(c0.sw); c.height = Math.round(c0.sh);
   c.getContext("2d").drawImage(video, c0.sx, c0.sy, c0.sw, c0.sh, 0, 0, c.width, c.height);
+  const info = framingInfo();
+  const mask = document.createElement("canvas"); mask.width = mcv.width; mask.height = mcv.height;
+  if (info.b) mask.getContext("2d").drawImage(mcv, 0, 0);
   flash();
-  lastBlob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.95));
+  lastBlob = await toBlob(c, 0.95);
   if (lastURL) URL.revokeObjectURL(lastURL);
   lastURL = URL.createObjectURL(lastBlob);
   $("shotImg").src = lastURL; $("thumb").style.backgroundImage = `url(${lastURL})`; $("thumb").disabled = false;
-  $("result").hidden = false;
+  lastInfo = info; $("why").textContent = info.text;
+  $("saveNote").textContent = "“Send for review” shares the photo plus a marked-up copy that explains the framing. Save both, then attach them in your Claude chat.";
+  if (auto) showTip("Auto-captured. Tap the thumbnail to review it.");
+  else $("result").hidden = false;
+  reviewBlob = null;
+  try{ reviewBlob = await makeReview(c, mask, info); }catch(e){ console.warn(e); }
+}
+
+function framingInfo(){
+  const pct = v => Math.round(v*100);
+  const g = S.g, b = S.box;
+  const base = {when:new Date(), b:null, F:null, target:null, aligned:false};
+  if (!S.key || !S.hasMask || !b || !g)
+    return {...base, text:"No subject was selected, so there was no framing target. Tap your subject before shooting to get guidance and a review."};
+  const lines = [];
+  const bw = b[2]-b[0], bh = b[3]-b[1], cx = (b[0]+b[2])/2, cy = (b[1]+b[3])/2, size = Math.max(bw,bh);
+  let target, targetLabel = "target for the subject’s centre";
+  if (S.ai){
+    const T = S.ai; target = [(T[0]+T[2])/2, (T[1]+T[3])/2];
+    lines.push(`Composition suggested by AI (“Read scene”).${S.aiTip ? " " + S.aiTip : ""}`);
+  } else {
+    const M = MODES[S.mode], side = S.side < .5 ? "left" : "right";
+    target = [M.tx ?? S.side, M.ty];
+    if (M.top) targetLabel = "target for the top of the subject";
+    lines.push({
+      thirds:`Rule of thirds: the subject’s centre goes on the ${side} third line (the side it was already on, so you move the least), and its longest side spans about ${pct(M.size)}% of the frame, leaving breathing room around it.`,
+      center:`Centered: the subject sits in the middle and its longest side spans about ${pct(M.size)}% of the frame. Good for symmetry and strong, front-on subjects.`,
+      close:`Close-up: the subject fills about ${pct(M.size)}% of the frame, centred, with its top ${pct(M.ty)}% down from the top edge so it isn’t cramped.`,
+      wide:`Wide: the subject stays small (about ${pct(M.size)}% of the frame) on the ${side} third line, a little below the middle, so the surroundings tell the story.`
+    }[S.mode]);
+  }
+  lines.push(`In this photo: subject centre ${pct(cx)}% across and ${pct(cy)}% down; its longest side spans ${pct(size)}% of the frame.`);
+  lines.push(g.aligned ? "Framing: on target when the photo was taken."
+    : `Framing: not on target yet. Still needed: ${g.mv.slice(0,3).map(p => say(p).toLowerCase()).join(", ")}.`);
+  if (S.roll != null) lines.push(`Level: ${Math.abs(S.roll) < 0.5 ? "straight" : S.roll.toFixed(1) + "° off"}.`);
+  return {...base, text:lines.join("\n"), b:b.slice(), F:S.frame ? {...S.frame} : null, target, targetLabel, aligned:g.aligned};
+}
+
+function wrapText(x, text, maxW){
+  const out = [];
+  for (const para of text.split("\n")){
+    let line = "";
+    for (const w of para.split(" ")){
+      const t = line ? line + " " + w : w;
+      if (x.measureText(t).width > maxW && line){ out.push(line); line = w; } else line = t;
+    }
+    out.push(line); out.push("");
+  }
+  out.pop();
+  return out;
+}
+async function makeReview(src, mask, info){
+  const W = 1080, H = Math.round(src.height*W/src.width), pad = 48, lh = 42;
+  const r = document.createElement("canvas"), x = r.getContext("2d");
+  const body = "30px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  x.font = body;
+  const lines = wrapText(x, info.text, W - pad*2);
+  const capH = pad*2 + 50 + lines.length*lh;
+  r.width = W; r.height = H + capH;
+  x.drawImage(src, 0, 0, W, H);
+  const ln = (a,b,c,d) => { x.beginPath(); x.moveTo(a,b); x.lineTo(c,d); x.stroke(); };
+  x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = 2;
+  for (const t of [1/3, 2/3]){ ln(t*W,0,t*W,H); ln(0,t*H,W,t*H); }
+  if (info.b){
+    const g = document.createElement("canvas"); g.width = W; g.height = H; const gx = g.getContext("2d");
+    gx.shadowColor = "#ffc23d"; gx.shadowBlur = 22;
+    gx.drawImage(mask,0,0,W,H); gx.drawImage(mask,0,0,W,H);
+    gx.shadowBlur = 0; gx.globalCompositeOperation = "destination-out"; gx.drawImage(mask,0,0,W,H);
+    x.drawImage(g, 0, 0);
+    const b = info.b, scx = (b[0]+b[2])/2*W, scy = info.targetLabel.includes("top") ? b[1]*H : (b[1]+b[3])/2*H;
+    if (info.F && !info.aligned){
+      const F = info.F; x.strokeStyle = "rgba(255,194,61,.9)"; x.lineWidth = 4; x.setLineDash([16,12]);
+      x.strokeRect(F.x0*W, F.y0*H, F.w*W, F.h*H); x.setLineDash([]);
+    }
+    const [tx, ty] = [info.target[0]*W, info.target[1]*H];
+    x.strokeStyle = "#ffc23d"; x.lineWidth = 4;
+    x.beginPath(); x.arc(tx, ty, 22, 0, Math.PI*2); x.stroke(); ln(tx-34,ty,tx+34,ty); ln(tx,ty-34,tx,ty+34);
+    x.fillStyle = "#fff"; x.strokeStyle = "#000"; x.lineWidth = 3;
+    x.beginPath(); x.arc(scx, scy, 10, 0, Math.PI*2); x.fill(); x.stroke();
+    x.font = "600 24px -apple-system, sans-serif"; x.fillStyle = "#ffc23d";
+    x.fillText(info.targetLabel, clamp(tx+30, 10, W-330), clamp(ty-30, 30, H-10));
+  }
+  x.fillStyle = "#111214"; x.fillRect(0, H, W, capH);
+  x.fillStyle = "#ffc23d"; x.font = "600 34px -apple-system, sans-serif";
+  x.fillText(`Framewise review · ${info.when.toLocaleString()}`, pad, H + pad + 30);
+  x.fillStyle = "#f4f2ee"; x.font = body;
+  lines.forEach((l,i) => x.fillText(l, pad, H + pad + 50 + (i+1)*lh - 10));
+  x.font = "22px -apple-system, sans-serif"; x.fillStyle = "rgba(244,242,238,.6)";
+  x.fillText("Gold glow: subject · gold target: where it should sit · white dot: where it is · grid: thirds", pad, H + capH - 18);
+  return toBlob(r, 0.9);
+}
+async function shareReview(){
+  if (!lastBlob) return;
+  if (!reviewBlob){ $("saveNote").textContent = "Still preparing the review image. Try again in a second."; return; }
+  const stamp = Date.now();
+  const files = [new File([lastBlob], `framewise-${stamp}.jpg`, {type:"image/jpeg"}),
+                 new File([reviewBlob], `framewise-${stamp}-review.jpg`, {type:"image/jpeg"})];
+  try{
+    if (navigator.canShare && navigator.canShare({files})) { await navigator.share({files}); return; }
+  }catch(e){ if (e.name === "AbortError") return; }
+  $("shotImg").src = URL.createObjectURL(reviewBlob);
+  $("saveNote").textContent = "Press and hold the marked-up image, then choose “Save to Photos”.";
 }
 function flash(){
   const f = document.createElement("div");
@@ -565,7 +676,7 @@ async function askAI(){
     if (!ok(js.subject_box) || !ok(js.target_box)) throw new Error("AI reply had no usable boxes");
     const b = js.subject_box;
     selectAt(clamp((b[0]+b[2])/2,.01,.99), clamp((b[1]+b[3])/2,.01,.99));
-    S.ai = js.target_box.slice();
+    S.ai = js.target_box.slice(); S.aiTip = js.tip || "";
     showTip(js.tip ? `${js.subject ? js.subject + ": " : ""}${js.tip}` : "");
     setStatus("AI frame set");
   }catch(e){
@@ -602,7 +713,18 @@ ov.addEventListener("click", e => {
   selectAt(clamp((e.clientX-r.left)/r.width,0,1), clamp((e.clientY-r.top)/r.height,0,1));
 });
 $("clearSel").addEventListener("click", clearSelection);
-$("shutter").addEventListener("click", capture);
+$("shutter").addEventListener("click", () => capture(false));
+$("review").addEventListener("click", shareReview);
+function syncAuto(){
+  const on = !!S.settings.autoCap;
+  $("autoBtn").setAttribute("aria-pressed", String(on));
+  $("autoBtn").querySelector("b").textContent = on ? "On" : "Off";
+}
+$("autoBtn").addEventListener("click", () => {
+  S.settings.autoCap = !S.settings.autoCap; S.captured = S.aligned; saveSettings(); syncAuto();
+  showTip(S.settings.autoCap ? "Auto-shoot on: the photo is taken the moment the frame turns green." : "");
+});
+syncAuto();
 $("thumb").addEventListener("click", () => { if (lastURL) $("result").hidden = false; });
 $("retake").addEventListener("click", () => { $("result").hidden = true; });
 $("save").addEventListener("click", savePhoto);
@@ -611,14 +733,14 @@ $("aiBtn").addEventListener("click", askAI);
 function openSettings(){
   const st = S.settings;
   $("prov").value = st.prov; $("key").value = st.key; $("model").value = st.model || ""; $("model").placeholder = FALLBACK_MODELS[st.prov] || "";
-  $("autoCap").checked = st.autoCap; $("showHl").checked = st.showHl; $("debug").checked = st.debug;
+  $("showHl").checked = st.showHl; $("debug").checked = st.debug;
   $("settings").hidden = false;
 }
 $("openSettings").addEventListener("click", openSettings);
 $("prov").addEventListener("change", () => { $("model").placeholder = FALLBACK_MODELS[$("prov").value] || ""; });
 $("closeSettings").addEventListener("click", () => {
   Object.assign(S.settings, {prov:$("prov").value, key:$("key").value.trim(), model:$("model").value.trim(),
-    autoCap:$("autoCap").checked, showHl:$("showHl").checked, debug:$("debug").checked});
+    showHl:$("showHl").checked, debug:$("debug").checked});
   saveSettings(); $("settings").hidden = true; drawHighlight();
 });
 document.querySelectorAll(".sheet").forEach(s => s.addEventListener("click", e => { if (e.target === s) s.hidden = true; }));
