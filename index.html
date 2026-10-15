@@ -257,9 +257,8 @@ async function startMotion(){
     const asks = [];
     if (typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function") asks.push(DeviceMotionEvent.requestPermission());
     if (typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function") asks.push(DeviceOrientationEvent.requestPermission());
-    const res = await Promise.all(asks);
-    if (res.some(r => r !== "granted")) return;
-  }catch{ return; }
+    await Promise.all(asks.map(p => p.catch(() => "denied")));
+  }catch{}
   window.addEventListener("deviceorientation", e => {
     if (e.alpha == null || e.beta == null) return;
     S.ori = rotMatrix(e.alpha, e.beta, e.gamma || 0);
@@ -270,8 +269,8 @@ async function startMotion(){
     if (S.gSamples < 30 && Math.abs(g.y) > 6){ S.gSumY += g.y; S.gSamples++; S.gFlip = S.gSumY >= 0 ? 1 : -1; }
     const r = Math.atan2(-g.x*S.gFlip, g.y*S.gFlip)*180/Math.PI;
     S.roll = S.roll==null ? r : S.roll + (r - S.roll)*0.2;
+    $("levelPill").hidden = false;
   });
-  $("levelPill").hidden = false;
 }
 
 async function loadSegmenter(){
