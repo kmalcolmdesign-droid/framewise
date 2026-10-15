@@ -44,6 +44,11 @@ button.pill{color:var(--fg)}
 #autoBtn[aria-pressed="true"]{background:var(--lock);color:#06210f}
 #autoBtn[aria-pressed="true"] b{color:#06210f}
 .why{margin:0;font-size:14px;line-height:1.45;color:var(--fg);white-space:pre-line}
+#gzWrap{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 214px);width:118px;
+  display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:18px;padding:7px 6px 8px}
+#gz{width:106px;height:106px;touch-action:none}
+#gzTxt{font:500 12px/1.2 var(--mono);letter-spacing:.04em;color:var(--fg)}
+#gzWrap .lbl{font:500 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .spacer{flex:1}
 .icon{width:38px;height:38px;border-radius:50%;border:0;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:grid;place-items:center}
 .icon svg{width:20px;height:20px}
@@ -134,6 +139,12 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   <div class="tip" id="gTip" hidden></div>
 </div>
 
+<div id="gzWrap" hidden>
+  <span class="lbl">Angle · drag gold</span>
+  <canvas id="gz" aria-label="Viewpoint around the subject. White dot is you, gold dot is the ideal angle. Drag to choose a different angle, double-tap to reset."></canvas>
+  <span id="gzTxt"></span>
+</div>
+
 <div class="bottom">
   <div class="chips" role="group" aria-label="Composition">
     <button class="chip" data-mode="thirds" aria-pressed="true">Thirds</button>
@@ -199,12 +210,15 @@ const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
 const FALLBACK_MODELS = {gemini:"gemini-2.5-flash", claude:"claude-haiku-4-5"};
 // size: the subject's longer side as a share of the frame. tx/ty: where its centre sits (top edge for close-ups).
+// el: ideal camera height as an angle above (+) or below (-) the subject's centre; elTol: how strict that is.
 const MODES = {
-  thirds:{label:"Thirds",   size:.55, ty:.5},
-  center:{label:"Centered", size:.6,  tx:.5, ty:.5},
-  close: {label:"Close-up", size:.9,  tx:.5, ty:.07, top:true},
-  wide:  {label:"Wide",     size:.3,  ty:.56}
+  thirds:{label:"Thirds",   size:.55, ty:.5,  el:0, elTol:9},
+  center:{label:"Centered", size:.6,  tx:.5, ty:.5, el:0, elTol:9},
+  close: {label:"Close-up", size:.9,  tx:.5, ty:.07, top:true, el:5, elTol:9},
+  wide:  {label:"Wide",     size:.3,  ty:.56, el:0, elTol:15}
 };
+const D2R = Math.PI/180, R2D = 180/Math.PI;
+const wrap = a => ((a + 540) % 360) - 180;
 
 const $ = id => document.getElementById(id);
 const video = $("v"), ov = $("ov"), ctx = ov.getContext("2d"), hl = $("hl"), hctx = hl.getContext("2d");
@@ -219,6 +233,7 @@ const S = {
   lockSince:0, captured:false,
   roll:null, gFlip:1, gSamples:0, gSumY:0,
   shown:"", shownT:0, intentText:"",
+  ori:null, T:null, cal:null, hd0:null, vp:null, target:{az:0, el:0}, elPref:null, viewSet:false,
   settings:{prov:"gemini",model:"",key:"",autoCap:false,showHl:true,debug:false}
 };
 try{ Object.assign(S.settings, JSON.parse(localStorage.getItem("fw.settings")||"{}")); }catch{}
@@ -230,12 +245,25 @@ async function startCamera(){
   await video.play();
 }
 
+function rotMatrix(a, b, g){ // W3C device orientation -> rotation matrix (device axes in world: x east, y north, z up)
+  const x = b*D2R, y = g*D2R, z = a*D2R;
+  const cX = Math.cos(x), cY = Math.cos(y), cZ = Math.cos(z), sX = Math.sin(x), sY = Math.sin(y), sZ = Math.sin(z);
+  return [cZ*cY - sZ*sX*sY, -cX*sZ, cY*sZ*sX + cZ*sY,
+          cY*sZ + cZ*sX*sY,  cZ*cX, sZ*sY - cZ*cY*sX,
+          -cX*sY,            sX,    cX*cY];
+}
 async function startMotion(){
   try{
-    if (typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function"){
-      const r = await DeviceMotionEvent.requestPermission(); if (r!=="granted") return;
-    }
+    const asks = [];
+    if (typeof DeviceMotionEvent!=="undefined" && typeof DeviceMotionEvent.requestPermission==="function") asks.push(DeviceMotionEvent.requestPermission());
+    if (typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function") asks.push(DeviceOrientationEvent.requestPermission());
+    const res = await Promise.all(asks);
+    if (res.some(r => r !== "granted")) return;
   }catch{ return; }
+  window.addEventListener("deviceorientation", e => {
+    if (e.alpha == null || e.beta == null) return;
+    S.ori = rotMatrix(e.alpha, e.beta, e.gamma || 0);
+  });
   window.addEventListener("devicemotion", e => {
     const g = e.accelerationIncludingGravity;
     if (!g || g.x==null) return;
@@ -351,11 +379,13 @@ function selectAt(x, y){
   S.key = {x, y}; S.tap = {x, y, t:performance.now()};
   S.box = null; S.hasMask = false; S.areaRef = 0; S.jump = 8; S.lost = 0;
   S.side = null; S.ai = null; S.frame = null; S.aligned = false;
+  S.hd0 = null; S.vp = null; S.viewSet = false; S.target = {az:0, el:elTarget()};
   drawHighlight(); showTip("");
   $("clearSel").hidden = false;
 }
 function clearSelection(){
   S.key = null; S.tap = null; S.box = null; S.hasMask = false; S.ai = null; S.frame = null; S.aligned = false;
+  S.hd0 = null; S.vp = null; S.viewSet = false;
   drawHighlight(); showTip("");
   $("clearSel").hidden = true;
 }
@@ -380,10 +410,98 @@ function idealFrame(b){
   return {x0:cx-tx*f, y0:ry-M.ty*f, w:f, h:f, s};
 }
 
+// ---------- 3D viewpoint: where the camera is on a sphere around the subject ----------
+const elTarget = () => S.elPref ?? MODES[S.mode].el;
+function updateViewpoint(now){
+  const M = S.ori, m = view();
+  if (!M || !m || !S.box || !S.hasMask || S.lost > 20) return;
+  if (S.T == null) S.T = 0.613 * (m.W/m.s) / Math.max(m.vw, m.vh); // ~63° lens on the long side, cropped to the screen
+  const u = (S.box[0]+S.box[2])/2, v = (S.box[1]+S.box[3])/2;
+  const ax = [M[0],M[3],M[6]], ay = [M[1],M[4],M[7]], f = [-M[2],-M[5],-M[8]];
+  const tx = (u-.5)*2*S.T, ty = -(v-.5)*2*S.T*(m.H/m.W);
+  const d = [0,1,2].map(i => f[i] + ax[i]*tx + ay[i]*ty), n = Math.hypot(...d);
+  d[0] /= n; d[1] /= n; d[2] /= n;
+  const el = -Math.asin(clamp(d[2],-1,1))*R2D, hd = Math.atan2(d[0], d[1])*R2D;
+  // Self-calibrate the lens angle: when the phone turns quickly, the subject's line of sight shouldn't change.
+  const fh = Math.atan2(f[0], f[1])*R2D;
+  if (!S.cal) S.cal = {t:now, fh, u};
+  else if (now - S.cal.t > 120){
+    const dpsi = wrap(fh - S.cal.fh)*D2R, du = u - S.cal.u;
+    if (Math.abs(dpsi) > 1.5*D2R && Math.abs(du) > .015 && Math.abs(f[2]) < .8){
+      const T = -dpsi/(2*du); if (T > .2 && T < 1.5) S.T += (T - S.T)*.15;
+    }
+    S.cal = {t:now, fh, u};
+  }
+  const flat = Math.abs(d[2]) > .95;
+  if (S.hd0 == null){ if (flat) return; S.hd0 = hd; }
+  const az = flat && S.vp ? S.vp.az : -wrap(hd - S.hd0);
+  S.vp = S.vp ? {az: S.vp.az + wrap(az - S.vp.az)*.25, el: S.vp.el + (el - S.vp.el)*.25} : {az, el};
+  if (!S.viewSet) S.target.el = elTarget();
+}
+const fmtEl = e => Math.abs(e) < 3 ? "level with the subject" : `${Math.round(Math.abs(e))}° ${e > 0 ? "above" : "below"} the subject`;
+
+const gz = $("gz"), gctx = gz.getContext("2d");
+function drawGizmo(onView){
+  const show = !!S.vp;
+  $("gzWrap").hidden = !show;
+  if (!show) return;
+  const d = window.devicePixelRatio||1, Wc = gz.clientWidth, Hc = gz.clientHeight;
+  if (gz.width !== Wc*d){ gz.width = Wc*d; gz.height = Hc*d; }
+  gctx.setTransform(d,0,0,d,0,0); gctx.clearRect(0,0,Wc,Hc);
+  const cx = Wc/2, cy = Hc/2 + 4, R = Wc*.38, tilt = 24*D2R;
+  const P = (az, el) => { const a = az*D2R, e = el*D2R, px = Math.sin(a)*Math.cos(e), pz = Math.cos(a)*Math.cos(e), py = Math.sin(e);
+    return {x: cx + R*px, y: cy + R*(pz*Math.sin(tilt)) - R*(py*Math.cos(tilt)), front: pz >= 0}; };
+  const ring = (fn, n, dashBack) => { let prev = null;
+    for (let i = 0; i <= n; i++){ const p = fn(i/n); if (prev){ gctx.setLineDash(dashBack && !p.front ? [2,3] : []); gctx.globalAlpha = p.front ? .55 : .25;
+      gctx.beginPath(); gctx.moveTo(prev.x, prev.y); gctx.lineTo(p.x, p.y); gctx.stroke(); } prev = p; }
+    gctx.setLineDash([]); gctx.globalAlpha = 1; };
+  gctx.strokeStyle = "#fff"; gctx.lineWidth = 1;
+  ring(t => P(t*360, 0), 72, true);
+  ring(t => P(90, -90 + t*180), 36, true); ring(t => P(-90, -90 + t*180), 36, true);
+  ring(t => P(0, -90 + t*180), 36, true);
+  // subject silhouette in the middle
+  if (S.hasMask && S.box){
+    const b = S.box, bw = (b[2]-b[0])*mcv.width, bh = (b[3]-b[1])*mcv.height, k = 26/Math.max(bw, bh, 1);
+    gctx.drawImage(mcv, b[0]*mcv.width, b[1]*mcv.height, bw, bh, cx - bw*k/2, cy - bh*k/2 - 2, bw*k, bh*k);
+  }
+  const cur = S.vp, tgt = S.target;
+  const AIM = "#ffc23d", LOCK = "#5fe08a";
+  // path from you to the ideal viewpoint, along the sphere
+  const dAz = wrap(tgt.az - cur.az), dEl = tgt.el - cur.el;
+  gctx.strokeStyle = onView ? LOCK : AIM; gctx.lineWidth = 2; gctx.setLineDash([4,3]);
+  gctx.beginPath();
+  for (let i = 0; i <= 24; i++){ const p = P(cur.az + dAz*i/24, cur.el + dEl*i/24); i ? gctx.lineTo(p.x, p.y) : gctx.moveTo(p.x, p.y); }
+  gctx.stroke(); gctx.setLineDash([]);
+  const pc = P(cur.az, cur.el), pt = P(tgt.az, tgt.el);
+  gctx.fillStyle = onView ? LOCK : AIM; gctx.beginPath(); gctx.arc(pt.x, pt.y, 7, 0, Math.PI*2); gctx.fill();
+  gctx.strokeStyle = "#231700"; gctx.lineWidth = 1.5; gctx.beginPath(); gctx.arc(pt.x, pt.y, 3, 0, Math.PI*2); gctx.stroke();
+  gctx.strokeStyle = "rgba(255,255,255,.7)"; gctx.lineWidth = 1; gctx.beginPath(); gctx.moveTo(pc.x, pc.y); gctx.lineTo(cx, cy); gctx.stroke();
+  gctx.fillStyle = "#fff"; gctx.strokeStyle = "#000"; gctx.lineWidth = 1.5;
+  gctx.beginPath(); gctx.arc(pc.x, pc.y, 5.5, 0, Math.PI*2); gctx.fill(); gctx.stroke();
+  const parts = [];
+  if (Math.abs(dAz) >= 5) parts.push(`${dAz > 0 ? "→" : "←"} ${Math.round(Math.abs(dAz))}°`);
+  if (Math.abs(dEl) >= 3) parts.push(`${dEl > 0 ? "↑" : "↓"} ${Math.round(Math.abs(dEl))}°`);
+  $("gzTxt").textContent = parts.length ? parts.join("  ") : "On angle";
+}
+let gzDrag = null;
+gz.addEventListener("pointerdown", e => { if (!S.vp) return; gzDrag = {x:e.clientX, y:e.clientY, az:S.target.az, el:S.target.el}; gz.setPointerCapture(e.pointerId); e.preventDefault(); });
+gz.addEventListener("pointermove", e => { if (!gzDrag) return;
+  S.target.az = gzDrag.az + (e.clientX - gzDrag.x)*1.5; S.target.el = clamp(gzDrag.el - (e.clientY - gzDrag.y)*1.2, -60, 88); S.viewSet = true; });
+gz.addEventListener("pointerup", () => { gzDrag = null; });
+gz.addEventListener("dblclick", () => { if (S.vp){ S.target = {az:S.vp.az, el:elTarget()}; S.viewSet = false; } });
+
 function guidance(F){
   const dx = F.x0 + F.w/2 - .5, dy = F.y0 + F.h/2 - .5, z = Math.log(F.s);
   const P = S.aligned ? .075 : .045, Z = S.aligned ? .22 : .14, R = S.aligned ? 4 : 2.5;
   const mv = [];
+  let onView = true;
+  if (S.vp){
+    const dAz = wrap(S.target.az - S.vp.az), dEl = S.target.el - S.vp.el;
+    const tAz = S.aligned ? 18 : 12, base = S.viewSet || S.ai ? MODES[S.mode].elTol*.8 : MODES[S.mode].elTol, tEl = S.aligned ? base*1.4 : base;
+    if (Math.abs(dAz) > tAz){ onView = false; mv.push({m:10 + Math.abs(dAz)/tAz, kind:"orbit", dir:dAz>0?"right":"left", deg:Math.round(Math.abs(dAz)/5)*5}); }
+    if (Math.abs(dEl) > tEl){ onView = false; mv.push({m:10 + Math.abs(dEl)/tEl, kind:"height", dir:dEl>0?"up":"down"}); }
+  }
+  S.onView = onView;
   if (Math.abs(dx) > P) mv.push({m:Math.abs(dx)/P, kind:"aim", dir:dx>0?"right":"left", big:Math.abs(dx)>.15});
   if (Math.abs(dy) > P) mv.push({m:Math.abs(dy)/P, kind:"aim", dir:dy>0?"down":"up", big:Math.abs(dy)>.15});
   if (Math.abs(z) > Z) mv.push({m:Math.abs(z)/Z, kind:z>0?"closer":"back", big:Math.abs(z)>.4});
@@ -391,7 +509,9 @@ function guidance(F){
   mv.sort((a,b) => b.m - a.m);
   return {mv, dx, dy, z, aligned: mv.length === 0};
 }
-const say = p => p.kind === "aim" ? `Aim ${p.big ? "" : "a bit "}${p.dir}`
+const say = p => p.kind === "orbit" ? `Walk ${p.dir} around it ~${Math.max(5,p.deg)}°`
+  : p.kind === "height" ? (p.dir === "up" ? "Raise the phone higher" : "Lower the phone")
+  : p.kind === "aim" ? `Aim ${p.big ? "" : "a bit "}${p.dir}`
   : p.kind === "closer" ? (p.big ? "Move closer" : "Move a bit closer")
   : p.kind === "back" ? (p.big ? "Step back" : "Step back a little")
   : "Straighten the phone";
@@ -459,6 +579,7 @@ function loop(now){
   requestAnimationFrame(loop);
   if (!view()) return;
   if (S.ready && S.key && now - S.lastSegT > 60){ S.lastSegT = now; segStep(); }
+  updateViewpoint(now);
   hl.classList.toggle("lost", S.lost > 10);
 
   const lost = S.lost > 20;
@@ -478,6 +599,7 @@ function loop(now){
   const changed = locked !== S.aligned;
   S.aligned = locked;
   draw(F, locked, now);
+  drawGizmo(g ? S.onView : false);
 
   const sub = $("gSub");
   if (!S.key){ setMain("Tap what you want to photograph", now, true); sub.textContent = S.ready ? "" : "Loading on-device AI…"; }
@@ -488,7 +610,7 @@ function loop(now){
     setMain(locked ? "Perfect. Hold still" : say(g.mv[0]), now, changed);
     const modeTxt = S.ai ? "AI FRAME" : MODES[S.mode].label.toUpperCase();
     sub.textContent = S.settings.debug
-      ? `${modeTxt} · dx ${g.dx.toFixed(2)} dy ${g.dy.toFixed(2)} zoom ${g.z.toFixed(2)} roll ${S.roll==null?"–":S.roll.toFixed(1)}° · ${S.segMs.toFixed(0)}ms`
+      ? `${modeTxt} · dx ${g.dx.toFixed(2)} dy ${g.dy.toFixed(2)} zoom ${g.z.toFixed(2)} roll ${S.roll==null?"–":S.roll.toFixed(1)}° · ${S.vp ? `az ${S.vp.az.toFixed(0)} el ${S.vp.el.toFixed(0)} fov ${(2*Math.atan(S.T)*R2D).toFixed(0)}° · ` : ""}${S.segMs.toFixed(0)}ms`
       : (!locked && g.mv[1] ? `then ${say(g.mv[1]).toLowerCase()}` : modeTxt);
   }
   $("guide").classList.toggle("locked", locked);
@@ -550,6 +672,10 @@ function framingInfo(){
   lines.push(`In this photo: subject centre ${pct(cx)}% across and ${pct(cy)}% down; its longest side spans ${pct(size)}% of the frame.`);
   lines.push(g.aligned ? "Framing: on target when the photo was taken."
     : `Framing: not on target yet. Still needed: ${g.mv.slice(0,3).map(p => say(p).toLowerCase()).join(", ")}.`);
+  if (S.vp){
+    const dAz = wrap(S.target.az - S.vp.az);
+    lines.push(`Viewpoint: camera ${fmtEl(S.vp.el)} (ideal: ${fmtEl(S.target.el)})${Math.abs(dAz) >= 10 ? `; the ideal angle was ~${Math.round(Math.abs(dAz))}° further ${dAz > 0 ? "right" : "left"} around the subject` : "; around the subject: on the chosen side"}.`);
+  }
   if (S.roll != null) lines.push(`Level: ${Math.abs(S.roll) < 0.5 ? "straight" : S.roll.toFixed(1) + "° off"}.`);
   return {...base, text:lines.join("\n"), b:b.slice(), F:S.frame ? {...S.frame} : null, target, targetLabel, aligned:g.aligned};
 }
@@ -596,7 +722,10 @@ async function makeReview(src, mask, info){
     x.fillStyle = "#fff"; x.strokeStyle = "#000"; x.lineWidth = 3;
     x.beginPath(); x.arc(scx, scy, 10, 0, Math.PI*2); x.fill(); x.stroke();
     x.font = "600 24px -apple-system, sans-serif"; x.fillStyle = "#ffc23d";
-    x.fillText(info.targetLabel, clamp(tx+30, 10, W-330), clamp(ty-30, 30, H-10));
+    const left = tx > W*.55;
+    x.textAlign = left ? "right" : "left";
+    x.fillText(info.targetLabel, left ? tx - 30 : tx + 30, clamp(ty-30, 30, H-10));
+    x.textAlign = "left";
   }
   x.fillStyle = "#111214"; x.fillRect(0, H, W, capH);
   x.fillStyle = "#ffc23d"; x.font = "600 34px -apple-system, sans-serif";
@@ -648,7 +777,9 @@ ${sel}
 Decide the main subject and where it should sit in the ideal photo. Coordinates are normalized 0..1 of THIS image, origin top-left, [x0,y0,x1,y1].
 - subject_box: where the subject is now.
 - target_box: where the subject should be in the perfect shot, keeping the same proportions as subject_box (it may be larger/smaller and may extend past the edges if the subject should be cropped). Use rule of thirds, leading room toward where the subject looks or moves, and headroom.
-Reply with ONLY JSON: {"subject":"short name","subject_box":[..],"target_box":[..],"tip":"one short, specific instruction about light, background or timing (max 14 words)"}`;
+- orbit_deg: how far the photographer should walk around the subject for a better viewing angle (positive = walk to their right, negative = to their left, 0 = this side is best). E.g. ~30 for a three-quarter view of a face or object seen flat-on.
+- camera_elevation_deg: the best camera height as an angle relative to the subject's centre (0 = level with it, positive = above looking down, e.g. 45 for food, 85 for a flat lay; negative = below looking up).
+Reply with ONLY JSON: {"subject":"short name","subject_box":[..],"target_box":[..],"orbit_deg":0,"camera_elevation_deg":0,"tip":"one short, specific instruction about light, background or timing (max 14 words)"}`;
 }
 async function askAI(){
   const {prov, key} = S.settings, model = S.settings.model || FALLBACK_MODELS[prov];
@@ -677,6 +808,11 @@ async function askAI(){
     const b = js.subject_box;
     selectAt(clamp((b[0]+b[2])/2,.01,.99), clamp((b[1]+b[3])/2,.01,.99));
     S.ai = js.target_box.slice(); S.aiTip = js.tip || "";
+    const orbit = Number(js.orbit_deg), elev = Number(js.camera_elevation_deg);
+    if (Number.isFinite(orbit) || Number.isFinite(elev)){
+      S.target = {az: Number.isFinite(orbit) ? clamp(orbit,-180,180) : 0, el: Number.isFinite(elev) ? clamp(elev,-60,88) : elTarget()};
+      S.viewSet = true;
+    }
     showTip(js.tip ? `${js.subject ? js.subject + ": " : ""}${js.tip}` : "");
     setStatus("AI frame set");
   }catch(e){
@@ -705,6 +841,10 @@ $("ask").addEventListener("submit", e => {
   S.intentText = t;
   const mode = parseMode(t);
   if (mode) setMode(mode);
+  const s = t.toLowerCase();
+  S.elPref = /flat ?lay|top[- ]?down|overhead|bird/.test(s) ? 85 : /food|meal|dish|plate|table/.test(s) ? 45
+    : /low angle|from below|heroic|worm/.test(s) ? -20 : /eye level|eye-level/.test(s) ? 0 : null;
+  if (!S.viewSet) S.target.el = elTarget();
   if (t && S.settings.prov !== "none" && S.settings.key) askAI();
   else if (!S.key) showTip("Now tap your subject on the screen.");
 });
