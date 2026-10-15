@@ -295,12 +295,12 @@ function analyze(a, w, h){
   }
   const frac = n/(w*h);
   let ok = n >= 12 && frac < .85;
-  if (ok && S.areaRef){
+  if (ok && S.areaRef && S.jump <= 0){
     const r = frac/S.areaRef;
-    if (r > 2.5 || r < .4){ if (++S.jump < 5) ok = false; }
+    if (r > 2.5 || r < .4) ok = false;
   }
   if (!ok){ S.lost++; return; }
-  S.jump = 0; S.lost = 0;
+  S.jump--; S.lost = 0;
   S.areaRef = S.areaRef ? S.areaRef + (frac - S.areaRef)*.3 : frac;
 
   if (mcv.width !== w || mcv.height !== h){ mcv.width = w; mcv.height = h; }
@@ -344,7 +344,7 @@ function drawHighlight(){
 
 function selectAt(x, y){
   S.key = {x, y}; S.tap = {x, y, t:performance.now()};
-  S.box = null; S.hasMask = false; S.areaRef = 0; S.jump = 0; S.lost = 0;
+  S.box = null; S.hasMask = false; S.areaRef = 0; S.jump = 8; S.lost = 0;
   S.side = null; S.ai = null; S.frame = null; S.aligned = false;
   drawHighlight(); showTip("");
   $("clearSel").hidden = false;
