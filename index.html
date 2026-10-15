@@ -480,7 +480,7 @@ function drawGizmo(onView){
   const parts = [];
   if (Math.abs(dAz) >= 5) parts.push(`${dAz > 0 ? "→" : "←"} ${Math.round(Math.abs(dAz))}°`);
   if (Math.abs(dEl) >= 3) parts.push(`${dEl > 0 ? "↑" : "↓"} ${Math.round(Math.abs(dEl))}°`);
-  $("gzTxt").textContent = parts.length ? parts.join("  ") : "On angle";
+  $("gzTxt").textContent = onView || !parts.length ? "On angle ✓" : parts.join("  ");
 }
 let gzDrag = null;
 gz.addEventListener("pointerdown", e => { if (!S.vp) return; gzDrag = {x:e.clientX, y:e.clientY, az:S.target.az, el:S.target.el}; e.preventDefault(); try{ gz.setPointerCapture(e.pointerId); }catch{} });
