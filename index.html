@@ -219,7 +219,7 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   </div>
 </div>
 
-<div class="sheet" id="dbg" hidden>
+<div class="sheet" id="dbgSheet" hidden>
   <div class="panel">
     <h2>Debug clip ready</h2>
     <p id="dbgInfo"></p>
@@ -850,14 +850,14 @@ function finishRecording(){
     errors:S.errors.slice(), scanResult:sr, taps:r.taps, states:r.states, frames:r.frames};
   dbgBlob = new Blob([JSON.stringify(data)], {type:"application/json"});
   $("dbgInfo").textContent = `${r.frames.length} camera frames, ${r.states.length} sensor readings, ${S.errors.length} errors · ${(dbgBlob.size/1048576).toFixed(1)} MB. Your AI key is not included.`;
-  $("dbg").hidden = false;
+  $("dbgSheet").hidden = false;
 }
 async function shareDebug(){
   if (!dbgBlob) return;
   const name = `framewise-debug-${new Date().toISOString().slice(0,16).replace(/[:T]/g,"-")}.json`;
   for (const type of ["application/json", "text/plain"]){
     const files = [new File([dbgBlob], name, {type})];
-    try{ if (navigator.canShare && navigator.canShare({files})){ await navigator.share({files}); $("dbg").hidden = true; return; } }
+    try{ if (navigator.canShare && navigator.canShare({files})){ await navigator.share({files}); $("dbgSheet").hidden = true; return; } }
     catch(e){ if (e.name === "AbortError") return; logErr(e); }
   }
   const a = document.createElement("a"); a.href = URL.createObjectURL(dbgBlob); a.download = name;
@@ -1352,7 +1352,7 @@ $("openSettings").addEventListener("click", openSettings);
 $("scanBtn").addEventListener("click", toggleScan);
 $("recDbg").addEventListener("click", startRecording);
 $("dbgShare").addEventListener("click", shareDebug);
-$("dbgDiscard").addEventListener("click", () => { dbgBlob = null; $("dbg").hidden = true; });
+$("dbgDiscard").addEventListener("click", () => { dbgBlob = null; $("dbgSheet").hidden = true; });
 $("ver").textContent = `Version ${VERSION}`;
 $("prov").addEventListener("change", () => { $("model").placeholder = FALLBACK_MODELS[$("prov").value] || ""; });
 $("closeSettings").addEventListener("click", () => {
