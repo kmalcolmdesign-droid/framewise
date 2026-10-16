@@ -44,7 +44,29 @@ button.pill{color:var(--fg)}
 #autoBtn[aria-pressed="true"]{background:var(--lock);color:#06210f}
 #autoBtn[aria-pressed="true"] b{color:#06210f}
 .why{margin:0;font-size:14px;line-height:1.45;color:var(--fg);white-space:pre-line}
-#gzWrap{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 214px);width:118px;
+.checks{display:flex;gap:5px;justify-content:center;flex-wrap:wrap}
+.checks span{font:500 10.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:var(--glass);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--dim)}
+.checks span::before{content:"○ "}
+.checks span.ok{color:var(--lock)}.checks span.ok::before{content:"✓ "}
+.checks span.bad{color:var(--warn)}.checks span.bad::before{content:"! "}
+.ideas{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.ideas::-webkit-scrollbar{display:none}
+.ideas .idea:first-child{margin-left:auto}.ideas .idea:last-child{margin-right:auto}
+.idea{flex:none;width:128px;display:flex;flex-direction:column;gap:3px;text-align:left;border:2px solid transparent;border-radius:14px;padding:6px;
+  background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.idea[aria-pressed="true"]{border-color:var(--aim)}
+.idea img{width:100%;height:72px;object-fit:cover;border-radius:9px;background:#222}
+.idea b{font:600 12.5px/1.2 var(--ui)}
+.idea span{font:400 11px/1.25 var(--ui);color:var(--dim)}
+.idea i{font:500 10.5px/1.2 var(--mono);font-style:normal;color:var(--aim);letter-spacing:.03em}
+body.has-ideas #gzWrap{bottom:calc(env(safe-area-inset-bottom,0px) + 290px)}
+body.has-ideas .chips, body.has-ideas form.ask{display:none}
+.guide.almost .main{background:var(--aim);color:#231700}
+.gzTop{display:flex;align-items:center;justify-content:space-between;gap:4px;width:100%;padding:0 2px 0 4px}
+.gzBtn{border:1px solid var(--aim);background:transparent;color:var(--aim);border-radius:999px;padding:6px 10px;font:500 10px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.gzBtn[data-on]{background:var(--aim);color:#231700}
+#gzWrap{position:fixed;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 214px);width:128px;
   display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:18px;padding:7px 6px 8px}
 #gz{width:106px;height:106px;touch-action:none}
 #gzTxt{font:500 12px/1.2 var(--mono);letter-spacing:.04em;color:var(--fg)}
@@ -126,7 +148,7 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
   <span class="pill" id="status">Loading</span>
   <span class="pill" id="levelPill" hidden>Level <b id="levelVal">0°</b></span>
   <span class="spacer"></span>
-  <button class="pill" id="clearSel" hidden>Clear ✕</button>
+  <button class="pill" id="clearSel" hidden aria-label="Clear the selected subject">✕</button>
   <button class="pill" id="autoBtn" aria-pressed="false" aria-label="Auto-shoot when the frame is perfect">Auto <b>Off</b></button>
   <button class="icon" id="openSettings" aria-label="Settings">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
@@ -140,17 +162,21 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 </div>
 
 <div id="gzWrap" hidden>
-  <span class="lbl">Angle · drag gold</span>
+  <div class="gzTop"><span class="lbl" id="gzLbl">Angle</span><button class="gzBtn" id="scanBtn" type="button" aria-label="Scan: walk around the subject so the app can learn its best side">Scan</button></div>
   <canvas id="gz" aria-label="Viewpoint around the subject. White dot is you, gold dot is the ideal angle. Drag to choose a different angle, double-tap to reset."></canvas>
   <span id="gzTxt"></span>
 </div>
 
 <div class="bottom">
+  <div class="checks" id="checks" hidden aria-label="Photo checks">
+    <span data-k="light">Light</span><span data-k="bg">Background</span><span data-k="angle">Angle</span><span data-k="frame">Framing</span><span data-k="steady">Steady</span>
+  </div>
+  <div class="ideas" id="ideas" hidden aria-label="Shot ideas"></div>
   <div class="chips" role="group" aria-label="Composition">
-    <button class="chip" data-mode="thirds" aria-pressed="true">Thirds</button>
+    <button class="chip" data-mode="thirds" aria-pressed="true">Balanced</button>
     <button class="chip" data-mode="center" aria-pressed="false">Centered</button>
     <button class="chip" data-mode="close" aria-pressed="false">Close-up</button>
-    <button class="chip" data-mode="wide" aria-pressed="false">Wide</button>
+    <button class="chip" data-mode="wide" aria-pressed="false">With scenery</button>
   </div>
   <form class="ask" id="ask">
     <input id="intent" type="text" autocomplete="off" enterkeyhint="go" placeholder="Describe the shot, e.g. close-up of my dog">
@@ -176,7 +202,10 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
     <div class="field"><label for="key">API key</label><input id="key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste key"></div>
     <label class="toggle">Glow around the subject <input id="showHl" type="checkbox" checked></label>
     <label class="toggle">Show debug numbers <input id="debug" type="checkbox"></label>
+    <button class="btn ghost" id="recDbg" type="button">Record a debug clip (12 s)</button>
+    <p class="note">Records small, low-resolution frames of what the camera saw, the motion sensor readings and what the app decided, so a problem can be replayed exactly. Your AI key is never included.</p>
     <div class="btns"><button class="btn" id="closeSettings">Done</button></div>
+    <p class="note" id="ver"></p>
   </div>
 </div>
 
@@ -187,6 +216,15 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
     <div class="btns"><button class="btn ghost" id="retake">Retake</button><button class="btn" id="save">Save to Photos</button></div>
     <button class="btn ghost" id="review">Send for review</button>
     <p class="note" id="saveNote">“Send for review” shares the photo plus a marked-up copy that explains the framing. Save both, then attach them in your Claude chat.</p>
+  </div>
+</div>
+
+<div class="sheet" id="dbg" hidden>
+  <div class="panel">
+    <h2>Debug clip ready</h2>
+    <p id="dbgInfo"></p>
+    <div class="btns"><button class="btn ghost" id="dbgDiscard" type="button">Discard</button><button class="btn" id="dbgShare" type="button">Share clip</button></div>
+    <p class="note">Choose “Save to Files”, then attach the file in your Claude chat.</p>
   </div>
 </div>
 
@@ -208,22 +246,25 @@ form.ask button{border:0;border-radius:12px;padding:8px 12px;background:rgba(255
 <script type="module">
 const CDN = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 const MODEL = "https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite";
-const FALLBACK_MODELS = {gemini:"gemini-2.5-flash", claude:"claude-haiku-4-5"};
+const FALLBACK_MODELS = {gemini:"gemini-flash-latest", claude:"claude-haiku-4-5"};
+const VERSION = "2026-10-16 scan";
+const CLS_MODEL = "https://storage.googleapis.com/mediapipe-models/image_classifier/efficientnet_lite0/float32/1/efficientnet_lite0.tflite";
+const FACE_MODEL = "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite";
 // size: the subject's longer side as a share of the frame. tx/ty: where its centre sits (top edge for close-ups).
 // el: ideal camera height as an angle above (+) or below (-) the subject's centre; elTol: how strict that is.
 const MODES = {
-  thirds:{label:"Thirds",   size:.55, ty:.5,  el:0, elTol:9},
+  thirds:{label:"Balanced", size:.55, ty:.5,  el:0, elTol:9},
   center:{label:"Centered", size:.6,  tx:.5, ty:.5, el:0, elTol:9},
   close: {label:"Close-up", size:.9,  tx:.5, ty:.07, top:true, el:5, elTol:9},
-  wide:  {label:"Wide",     size:.3,  ty:.56, el:0, elTol:15}
+  wide:  {label:"With scenery", size:.3, ty:.56, el:0, elTol:15}
 };
 const D2R = Math.PI/180, R2D = 180/Math.PI;
 const wrap = a => ((a + 540) % 360) - 180;
 
 const $ = id => document.getElementById(id);
 const video = $("v"), ov = $("ov"), ctx = ov.getContext("2d"), hl = $("hl"), hctx = hl.getContext("2d");
-const scv = document.createElement("canvas"), sctx = scv.getContext("2d");
-const mcv = document.createElement("canvas"), mctx = mcv.getContext("2d");
+const scv = document.createElement("canvas"), sctx = scv.getContext("2d", {willReadFrequently:true});
+const mcv = document.createElement("canvas"), mctx = mcv.getContext("2d", {willReadFrequently:true});
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 
 const S = {
@@ -234,13 +275,29 @@ const S = {
   roll:null, gFlip:1, gSamples:0, gSumY:0,
   shown:"", shownT:0, intentText:"",
   ori:null, T:null, cal:null, hd0:null, vp:null, target:{az:0, el:0}, elPref:null, viewSet:false,
+  segGap:60, segStats:{n:0, sum:0, max:0}, prim:null, grav:null, vision:null, files:null,
+  scan:null, scanResult:null, rec:null, errors:[],
   settings:{prov:"gemini",model:"",key:"",autoCap:false,showHl:true,debug:false}
 };
 try{ Object.assign(S.settings, JSON.parse(localStorage.getItem("fw.settings")||"{}")); }catch{}
 const saveSettings = () => { try{ localStorage.setItem("fw.settings", JSON.stringify(S.settings)); }catch{} };
 
 async function startCamera(){
-  const stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1440}}});
+  const want = {width:{ideal:1920}, height:{ideal:1440}};
+  let stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, ...want}});
+  // iPhones may open a "virtual" camera (Dual / Triple) that switches lenses by itself mid-use, which scrambles
+  // every size and angle estimate. Once labels are visible, switch to the plain wide "Back Camera" if there is one.
+  try{
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput");
+    const plain = cams.find(d => /^back camera$/i.test(d.label.trim())) || cams.find(d => /back/i.test(d.label) && !/dual|triple|ultra|tele|front/i.test(d.label));
+    const cur = stream.getVideoTracks()[0];
+    if (plain && cur && cur.getSettings().deviceId !== plain.deviceId){
+      cur.stop();
+      try{ stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{deviceId:{exact:plain.deviceId}, ...want}}); }
+      catch(e){ logErr(e); stream = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}, ...want}}); }
+    }
+    S.camLabel = stream.getVideoTracks()[0]?.label || "";
+  }catch(e){ logErr(e); }
   video.srcObject = stream;
   await video.play();
 }
@@ -264,8 +321,13 @@ async function startMotion(){
     S.ori = rotMatrix(e.alpha, e.beta, e.gamma || 0);
   });
   window.addEventListener("devicemotion", e => {
+    const rr = e.rotationRate; // how fast the phone is turning: shaky hands blur photos
+    if (rr && rr.alpha != null){ const w = Math.hypot(rr.alpha, rr.beta || 0, rr.gamma || 0); S.shake = S.shake == null ? w : S.shake + (w - S.shake)*.15; }
     const g = e.accelerationIncludingGravity;
     if (!g || g.x==null) return;
+    S.grav = [g.x, g.y, g.z];
+    const gn = Math.hypot(g.x, g.y, g.z) || 1;
+    if (Math.abs(g.z)/gn > .75){ S.roll = null; return; } // pointing steeply down or up: no horizon to level against
     if (S.gSamples < 30 && Math.abs(g.y) > 6){ S.gSumY += g.y; S.gSamples++; S.gFlip = S.gSumY >= 0 ? 1 : -1; }
     const r = Math.atan2(-g.x*S.gFlip, g.y*S.gFlip)*180/Math.PI;
     S.roll = S.roll==null ? r : S.roll + (r - S.roll)*0.2;
@@ -277,6 +339,7 @@ async function loadSegmenter(){
   setStatus("Loading AI");
   const vision = await import(`${CDN}/vision_bundle.mjs`);
   const files = await vision.FilesetResolver.forVisionTasks(`${CDN}/wasm`);
+  S.vision = vision; S.files = files;
   const opts = d => ({baseOptions:{modelAssetPath:MODEL, delegate:d}, outputCategoryMask:false, outputConfidenceMasks:true});
   try{ S.seg = await vision.InteractiveSegmenter.createFromOptions(files, opts("GPU")); }
   catch{ S.seg = await vision.InteractiveSegmenter.createFromOptions(files, opts("CPU")); }
@@ -299,7 +362,7 @@ const crop = m => ({sx:Math.max(0,-m.ox/m.s), sy:Math.max(0,-m.oy/m.s), sw:m.W/m
 function sizeCanvases(){
   const W = ov.clientWidth, H = ov.clientHeight, d = window.devicePixelRatio||1;
   ov.width = W*d; ov.height = H*d; ctx.setTransform(d,0,0,d,0,0);
-  hl.width = W; hl.height = H;
+  hl.width = Math.round(W/2); hl.height = Math.round(H/2); // glow drawn at half size: much cheaper on phones, CSS scales it up
   const L = 320;
   const mw = H >= W ? Math.round(L*W/H) : L, mh = H >= W ? L : Math.round(L*H/W);
   if (scv.width !== mw || scv.height !== mh){ scv.width = mcv.width = mw; scv.height = mcv.height = mh; S.hasMask = false; }
@@ -307,7 +370,7 @@ function sizeCanvases(){
 }
 
 function segStep(){
-  const m = view(); if (!m) return;
+  const m = view(); if (!m || video.readyState < 2) return;
   const c = crop(m);
   sctx.drawImage(video, c.sx, c.sy, c.sw, c.sh, 0, 0, scv.width, scv.height);
   const t = performance.now();
@@ -316,8 +379,10 @@ function segStep(){
       const cm = r.confidenceMasks && r.confidenceMasks[0];
       if (cm) analyze(cm.getAsFloat32Array(), cm.width, cm.height);
     });
-  }catch(e){ console.warn(e); }
+  }catch(e){ logErr(e); }
   S.segMs = performance.now() - t;
+  S.segGap = clamp(S.segMs*1.6, 60, 300); // slower phones segment less often instead of freezing the screen
+  const st = S.segStats; st.n++; st.sum += S.segMs; st.max = Math.max(st.max, S.segMs);
 }
 
 function analyze(a, w, h){
@@ -365,7 +430,7 @@ function drawHighlight(){
   if (!S.settings.showHl || !S.hasMask || !S.key) return;
   hctx.save();
   hctx.imageSmoothingEnabled = true; hctx.imageSmoothingQuality = "high";
-  hctx.shadowColor = "rgba(255,255,255,.95)"; hctx.shadowBlur = 18;
+  hctx.shadowColor = "rgba(255,255,255,.95)"; hctx.shadowBlur = 9;
   hctx.drawImage(mcv,0,0,W,H); hctx.drawImage(mcv,0,0,W,H);
   hctx.shadowBlur = 0; hctx.shadowColor = "transparent";
   hctx.globalCompositeOperation = "destination-out"; hctx.drawImage(mcv,0,0,W,H);
@@ -376,6 +441,9 @@ function drawHighlight(){
 
 function selectAt(x, y){
   S.key = {x, y}; S.tap = {x, y, t:performance.now()};
+  if (S.rec) S.rec.taps.push({t:Math.round(performance.now() - S.rec.t0), x, y});
+  if (S.scan) stopScan(false);
+  S.scanResult = null; S.prim = null; hideIdeas();
   S.box = null; S.hasMask = false; S.areaRef = 0; S.jump = 8; S.lost = 0;
   S.side = null; S.ai = null; S.frame = null; S.aligned = false;
   S.hd0 = null; S.vp = null; S.viewSet = false; S.target = {az:0, el:elTarget()};
@@ -385,6 +453,8 @@ function selectAt(x, y){
 function clearSelection(){
   S.key = null; S.tap = null; S.box = null; S.hasMask = false; S.ai = null; S.frame = null; S.aligned = false;
   S.hd0 = null; S.vp = null; S.viewSet = false;
+  if (S.scan) stopScan(false);
+  S.scanResult = null; S.prim = null; hideIdeas();
   drawHighlight(); showTip("");
   $("clearSel").hidden = true;
 }
@@ -458,6 +528,18 @@ function drawGizmo(onView){
   ring(t => P(t*360, 0), 72, true);
   ring(t => P(90, -90 + t*180), 36, true); ring(t => P(-90, -90 + t*180), 36, true);
   ring(t => P(0, -90 + t*180), 36, true);
+  // angles already scanned: gold arcs on the sphere, like a Face ID enrolment ring
+  const bins = S.scan ? S.scan.bins : S.scanResult ? S.scanResult.bins : null;
+  if (bins){
+    gctx.strokeStyle = "#ffc23d"; gctx.lineWidth = 4; gctx.lineCap = "round"; gctx.globalAlpha = .85;
+    for (const v of bins.values()){
+      gctx.beginPath();
+      for (let i = 0; i <= 6; i++){ const p = P(v.az - 6 + 12*i/6, v.el); i ? gctx.lineTo(p.x, p.y) : gctx.moveTo(p.x, p.y); }
+      gctx.stroke();
+    }
+    gctx.globalAlpha = 1; gctx.lineCap = "butt";
+  }
+  $("gzLbl").textContent = S.scan ? `${S.scan.bins.size} angle${S.scan.bins.size === 1 ? "" : "s"}` : S.scanResult ? "Scanned" : "Angle";
   // subject silhouette in the middle
   if (S.hasMask && S.box){
     const b = S.box, bw = (b[2]-b[0])*mcv.width, bh = (b[3]-b[1])*mcv.height, k = 26/Math.max(bw, bh, 1);
@@ -486,12 +568,306 @@ let gzDrag = null;
 gz.addEventListener("pointerdown", e => { if (!S.vp) return; gzDrag = {x:e.clientX, y:e.clientY, az:S.target.az, el:S.target.el}; e.preventDefault(); try{ gz.setPointerCapture(e.pointerId); }catch{} });
 gz.addEventListener("pointermove", e => { if (!gzDrag) return;
   S.target.az = gzDrag.az + (e.clientX - gzDrag.x)*1.5; S.target.el = clamp(gzDrag.el - (e.clientY - gzDrag.y)*1.2, -60, 88); S.viewSet = true; });
-gz.addEventListener("pointerup", () => { gzDrag = null; });
-gz.addEventListener("dblclick", () => { if (S.vp){ S.target = {az:S.vp.az, el:elTarget()}; S.viewSet = false; } });
+function resetTarget(){ if (S.vp){ S.target = {az:S.vp.az, el:elTarget()}; S.viewSet = false; } }
+gz.addEventListener("pointerup", e => {
+  const d = gzDrag, now = performance.now(); gzDrag = null;
+  if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8){ // a tap, not a drag: double-tap resets the ideal angle
+    if (now - (S.gzTap || 0) < 350){ resetTarget(); S.gzTap = 0; } else S.gzTap = now;
+  }
+});
+gz.addEventListener("pointercancel", () => { gzDrag = null; });
+
+// ---------- Live checks: the things beginners most often get wrong, measured a few times a second ----------
+function updateChecks(now){
+  if (!S.hasMask || !S.box || now - (S.chkT || 0) < 300) return;
+  S.chkT = now;
+  const w = scv.width, h = scv.height;
+  if (mcv.width !== w || mcv.height !== h) return;
+  let img, msk;
+  try{ img = sctx.getImageData(0,0,w,h).data; msk = mctx.getImageData(0,0,w,h).data; }catch{ return; }
+  const b = S.box, bw = b[2]-b[0], bh = b[3]-b[1];
+  const rx0 = Math.max(0, Math.floor((b[0]-bw*.5)*w)), rx1 = Math.min(w-3, Math.ceil((b[2]+bw*.5)*w));
+  const ry0 = Math.max(0, Math.floor((b[1]-bh*.5)*h)), ry1 = Math.min(h-3, Math.ceil((b[3]+bh*.5)*h));
+  const Y = i => .299*img[i] + .587*img[i+1] + .114*img[i+2];
+  let n = 0, all = 0, sN = 0, sY = 0, sR = 0, sG = 0, sB = 0, bN = 0, bY = 0, bR = 0, bG = 0, bB = 0, gS = 0, gN = 0;
+  for (let y = 0; y < h; y += 2) for (let x = 0; x < w; x += 2){
+    const i = (y*w + x)*4, yy = Y(i); n++; all += yy;
+    if (msk[i+3] > 128){ sN++; sY += yy; sR += img[i]; sG += img[i+1]; sB += img[i+2]; }
+    else if (x >= rx0 && x <= rx1 && y >= ry0 && y <= ry1){
+      bN++; bY += yy; bR += img[i]; bG += img[i+1]; bB += img[i+2];
+      const ir = i + 8, id = i + w*8; // neighbours 2 px right and 2 px down
+      if (msk[ir+3] <= 128 && msk[id+3] <= 128){ gS += Math.abs(yy - Y(ir)) + Math.abs(yy - Y(id)); gN++; }
+    }
+  }
+  if (!sN || !bN) return;
+  const subj = sY/sN, back = bY/bN, mean = all/n, busy = gN ? gS/gN : 0;
+  const sep = Math.hypot(sR/sN - bR/bN, sG/sN - bG/bN, sB/sN - bB/bN);
+  S.checks = {
+    light: mean < 45 ? {ok:false, say:"Too dark for a sharp photo. Find more light"}
+         : (back > 190 && back - subj > 70 && subj < 130) ? {ok:false, say:"Bright light behind it. Walk round so the light is behind you"} : {ok:true},
+    bg: busy > 24 ? {ok:false, say:"Busy background. Step sideways for a plainer one"}
+      : sep < 28 ? {ok:false, say:"It blends into the background. Find a contrasting one"} : {ok:true},
+    stats:{subj:Math.round(subj), back:Math.round(back), mean:Math.round(mean), busy:+busy.toFixed(1), sep:Math.round(sep)}
+  };
+}
+function renderChecks(g, locked){
+  const el = $("checks"), show = !!(S.key && S.hasMask && g && !S.scan);
+  el.hidden = !show;
+  if (!show) return;
+  const c = S.checks || {}, steady = S.shake == null || S.shake < 12;
+  const framing = !g.mv.some(p => p.kind === "aim" || p.kind === "closer" || p.kind === "back" || p.kind === "level");
+  const set = (k, ok) => { const s = el.querySelector(`[data-k="${k}"]`); if (!s) return; s.hidden = ok == null; s.classList.toggle("ok", ok === true); s.classList.toggle("bad", ok === false); };
+  set("light", c.light ? c.light.ok : null); set("bg", c.bg ? c.bg.ok : null);
+  set("angle", S.vp ? !!S.onView : null); set("frame", framing); set("steady", S.shake == null ? null : steady);
+}
+
+// ---------- helpers ----------
+const REC_MS = 12000;
+function logErr(e){
+  const m = (e && (e.stack || e.message)) || String(e); console.warn(m);
+  S.errors.push({t:Math.round(performance.now()), m:String(m).slice(0,300)}); if (S.errors.length > 30) S.errors.shift();
+}
+window.addEventListener("error", e => logErr(e.error || e.message));
+window.addEventListener("unhandledrejection", e => logErr(e.reason));
+// iOS can pause or stop the camera after the share sheet or switching apps; bring it back.
+function keepCameraAlive(now){
+  if (!$("start").hidden || now - (S.camCheck || 0) < 1000) return;
+  S.camCheck = now;
+  const tr = video.srcObject && video.srcObject.getVideoTracks ? video.srcObject.getVideoTracks()[0] : null;
+  if (!tr || tr.readyState === "ended"){
+    if (!S.camRestart){ S.camRestart = true; startCamera().catch(logErr).finally(() => { S.camRestart = false; }); }
+  } else if (video.paused) video.play().catch(() => {});
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden) S.camCheck = 0; });
+
+// ---------- Scan: walk around the subject to learn what it is and its best side ----------
+const SCAN_BIN = 15;
+const scanSpan = bins => { const ks = [...bins.keys()]; return ks.length ? (Math.max(...ks) - Math.min(...ks))*SCAN_BIN : 0; };
+function toggleScan(){
+  if (S.scan){ stopScan(true); return; }
+  if (!S.key || !S.hasMask){ showTip("Tap your subject first, then Scan."); return; }
+  if (!S.vp){ showTip("Scanning needs Motion & Orientation access. Allow it for Safari, then reload."); return; }
+  S.scan = {t0:performance.now(), bins:new Map(), lastT:0};
+  S.scanResult = null; S.prim = null;
+  $("scanBtn").textContent = "Done"; $("scanBtn").dataset.on = "";
+  showTip("Walk slowly around your subject, keeping it in view. Half a circle is plenty.");
+}
+function stopScan(analyse){
+  const sc = S.scan; S.scan = null;
+  $("scanBtn").textContent = "Scan"; delete $("scanBtn").dataset.on;
+  if (analyse && sc) finishScan(sc).catch(e => { logErr(e); showTip(`Couldn’t finish the scan: ${e.message}`); setStatus("Ready"); });
+}
+function scanStep(now){
+  const sc = S.scan;
+  if (!sc || !S.vp || !S.box || !S.hasMask || S.lost > 3 || now - sc.lastT < 150) return;
+  const b = S.box;
+  if (b[0] < .01 || b[1] < .01 || b[2] > .99 || b[3] > .99) return; // need the whole subject in view
+  const k = Math.round(S.vp.az / SCAN_BIN);
+  const off = Math.abs((b[0]+b[2])/2 - .5) + Math.abs((b[1]+b[3])/2 - .5);
+  const prev = sc.bins.get(k);
+  if (prev && prev.off <= off) return;
+  sc.lastT = now;
+  const kf = keyframe(b, off);
+  if (kf) sc.bins.set(k, kf);
+  if ((sc.bins.size >= 9 && scanSpan(sc.bins) >= 120) || now - sc.t0 > 90000) stopScan(true);
+}
+// A snapshot of the subject from this angle, plus simple measurements of its outline.
+function keyframe(b, off){
+  const m = view(); if (!m) return null;
+  const c = crop(m);
+  const bw = b[2]-b[0], bh = b[3]-b[1], pad = .12;
+  const x0 = clamp(b[0]-bw*pad,0,1), y0 = clamp(b[1]-bh*pad,0,1), x1 = clamp(b[2]+bw*pad,0,1), y1 = clamp(b[3]+bh*pad,0,1);
+  const sx = c.sx + x0*c.sw, sy = c.sy + y0*c.sh, sw = (x1-x0)*c.sw, sh = (y1-y0)*c.sh;
+  const k = 256/Math.max(sw, sh);
+  const img = document.createElement("canvas"); img.width = Math.max(1, Math.round(sw*k)); img.height = Math.max(1, Math.round(sh*k));
+  img.getContext("2d").drawImage(video, sx, sy, sw, sh, 0, 0, img.width, img.height);
+  const full = document.createElement("canvas"); full.width = full.height = 224; // the whole view, for the beauty score
+  full.getContext("2d").drawImage(video, c.sx, c.sy, c.sw, c.sh, 0, 0, 224, 224);
+  const N = 48, mk = document.createElement("canvas"); mk.width = N; mk.height = N;
+  const mx = mk.getContext("2d", {willReadFrequently:true});
+  mx.drawImage(mcv, b[0]*mcv.width, b[1]*mcv.height, bw*mcv.width, bh*mcv.height, 0, 0, N, N);
+  const a = mx.getImageData(0,0,N,N).data;
+  let inter = 0, uni = 0, filled = 0;
+  for (let y=0; y<N; y++) for (let x=0; x<N; x++){
+    const p = a[(y*N+x)*4+3] > 128, q = a[(y*N+(N-1-x))*4+3] > 128;
+    if (p) filled++; if (p && q) inter++; if (p || q) uni++;
+  }
+  return {az:S.vp.az, el:S.vp.el, off, img, full,
+    aspect:(bw*m.W)/(bh*m.H),   // width ÷ height on screen: wider = more of the subject visible
+    sym:uni ? inter/uni : 0,     // 1 = mirror-symmetric outline (often straight-on front, back or side)
+    fill:filled/(N*N)};
+}
+async function getTask(name){
+  if (S[name]) return S[name];
+  if (!S.vision) throw new Error("on-device AI isn’t loaded yet");
+  const V = S.vision;
+  if (name === "classifier") S[name] = await V.ImageClassifier.createFromOptions(S.files, {baseOptions:{modelAssetPath:CLS_MODEL}, runningMode:"IMAGE", maxResults:3});
+  if (name === "faceDet") S[name] = await V.FaceDetector.createFromOptions(S.files, {baseOptions:{modelAssetPath:FACE_MODEL}, runningMode:"IMAGE", minDetectionConfidence:.5});
+  return S[name];
+}
+// Beauty score: NIMA (MobileNet trained on 250,000 photos rated by people), 1 to 10, run on the phone.
+const TFJS = "https://cdn.jsdelivr.net/npm/@tensorflow";
+const NIMA_MODEL = "https://huggingface.co/litert-community/NIMA-LiteRT/resolve/main/nima_aesthetic_fp16.tflite";
+const loadScript = src => new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error(`couldn’t load ${src}`)); document.head.append(s); });
+async function getNima(){
+  if (S.nima) return S.nima;
+  if (!window.tf) await loadScript(`${TFJS}/tfjs-core@4.9.0/dist/tf-core.min.js`);
+  if (!window.tf.findBackend("cpu")) await loadScript(`${TFJS}/tfjs-backend-cpu@4.9.0/dist/tf-backend-cpu.min.js`);
+  if (!window.tflite) await loadScript(`${TFJS}/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js`);
+  window.tflite.setWasmPath(`${TFJS}/tfjs-tflite@0.0.1-alpha.10/wasm/`);
+  await window.tf.ready();
+  S.nima = await window.tflite.loadTFLiteModel(NIMA_MODEL);
+  return S.nima;
+}
+function nimaScore(model, canvas){
+  const tf = window.tf;
+  const out = tf.tidy(() => {
+    const x = tf.expandDims(tf.sub(tf.div(tf.cast(tf.browser.fromPixels(canvas), "float32"), 127.5), 1), 0);
+    const p = model.predict(x);
+    return (p instanceof tf.Tensor ? p : Object.values(p)[0]).clone();
+  });
+  const d = out.dataSync(); out.dispose();
+  let s = 0, t = 0;
+  for (let i = 0; i < 10; i++){ s += (i+1)*d[i]; t += d[i]; }
+  return t > 0 ? s/t : null;
+}
+const norm01 = a => { const lo = Math.min(...a), hi = Math.max(...a); return a.map(x => hi > lo ? (x - lo)/(hi - lo) : .5); };
+
+async function finishScan(sc){
+  const views = [...sc.bins.values()].sort((a,b) => a.az - b.az);
+  if (views.length < 3){ showTip("Not enough angles. Tap Scan again and walk further around it."); return; }
+  setStatus("Studying it"); showTip("Studying your subject…");
+  const res = {bins:sc.bins, n:views.length, span:scanSpan(sc.bins)};
+  try{ // what is it? (on-device classifier, about 1,000 everyday categories)
+    const cl = await getTask("classifier");
+    const mid = views.reduce((p,v) => v.off < p.off ? v : p);
+    const cat = cl.classify(mid.img).classifications?.[0]?.categories?.[0];
+    if (cat && cat.score > .15) res.label = {name:cat.categoryName.split(",")[0], score:cat.score};
+  }catch(e){ logErr(e); }
+  try{ // is it a person? which way does the face point in each view?
+    const fd = await getTask("faceDet");
+    for (const v of views){
+      const k = fd.detect(v.img).detections?.[0]?.keypoints;
+      if (k && k.length >= 3){
+        const eyeMid = (k[0].x + k[1].x)/2, eyeDist = Math.abs(k[1].x - k[0].x) || .01;
+        v.faceYaw = (k[2].x - eyeMid)/eyeDist; // ~0 straight-on, larger when the head is turned
+      }
+    }
+  }catch(e){ logErr(e); }
+  try{ // how good does each view look as a photo? (light, background, overall appeal)
+    showTip("Scoring each angle…");
+    const nima = await getNima();
+    for (const v of views) v.aes = nimaScore(nima, v.full);
+    res.scored = views.every(v => Number.isFinite(v.aes));
+  }catch(e){ logErr(e); res.scored = false; }
+  const near = az => views.reduce((p,v) => Math.abs(wrap(v.az - az)) < Math.abs(wrap(p.az - az)) ? v : p);
+  const faces = views.filter(v => v.faceYaw != null);
+  let best, reason, front = null;
+  if (faces.length >= 2){
+    front = faces.reduce((p,v) => Math.abs(v.faceYaw) < Math.abs(p.faceYaw) ? v : p);
+    const cand = [front.az - 30, front.az + 30];
+    best = res.scored ? cand.reduce((p,a) => near(a).aes > near(p).aes ? a : p)
+      : cand.reduce((p,a) => Math.abs(wrap(a - S.vp.az)) < Math.abs(wrap(p - S.vp.az)) ? a : p);
+    reason = "a three-quarter view of the face, the classic flattering portrait angle";
+    res.kind = "person";
+  } else {
+    const asp = views.map(v => v.aspect), an = norm01(asp), sn = res.scored ? norm01(views.map(v => v.aes)) : null;
+    const score = i => sn ? .5*an[i] + .5*sn[i] : an[i];
+    const pi = views.reduce((p,_,i) => score(i) > score(p) ? i : p, 0), pick = views[pi];
+    front = views.reduce((p,v) => v.sym > p.sym ? v : p);
+    const flatShape = Math.max(...asp) - Math.min(...asp) < .06, flatLooks = !sn || Math.max(...views.map(v => v.aes)) - Math.min(...views.map(v => v.aes)) < .3;
+    if (flatShape && flatLooks){
+      best = S.vp.az; reason = "it looks much the same from every side, so stay where the light is best";
+    } else {
+      best = pick.az;
+      const edge = pi === 0 || pi === views.length - 1;
+      reason = flatShape ? "the angle with the nicest light and background" : "where it shows the most of itself, with two sides visible at once";
+      if (edge) reason += " (it may look even better a little further round)";
+    }
+    res.kind = "object";
+  }
+  if (res.scored){ const bv = near(best); res.bestScore = bv.aes; res.scoreRange = [Math.min(...views.map(v => v.aes)), Math.max(...views.map(v => v.aes))]; }
+  res.frontAz = front ? front.az : null;
+  if (S.settings.prov !== "none" && S.settings.key){ // optional second opinion from the user's own AI key
+    try{
+      const sheet = contactSheet(views);
+      const js = await aiJSON(sheet.b64, `These tiles show the same subject photographed while walking around it. Each tile is labelled with a letter and the camera angle in degrees (positive = further to the photographer's right): ${sheet.legend}.
+Reply with ONLY JSON: {"subject":"short name","front":"letter of the most front-on tile","best":"letter of the most photogenic angle","best_offset_deg":0,"camera_elevation_deg":0,"reason":"one short sentence a beginner understands"}
+best_offset_deg fine-tunes the best tile's angle (-20 to 20). camera_elevation_deg is the best camera height relative to the subject's centre (0 level, positive above, e.g. 45 for food).`, 500);
+      const pickV = sheet.byLetter[String(js.best || "").trim().toUpperCase()];
+      if (pickV){
+        best = pickV.az + clamp(Number(js.best_offset_deg) || 0, -20, 20);
+        reason = js.reason || reason;
+        if (Number.isFinite(Number(js.camera_elevation_deg))) res.el = clamp(Number(js.camera_elevation_deg), -60, 88);
+        const fr = sheet.byLetter[String(js.front || "").trim().toUpperCase()]; if (fr) res.frontAz = fr.az;
+        if (js.subject) res.label = {name:js.subject, score:1, ai:true};
+        res.ai = true;
+      }
+    }catch(e){ logErr(e); }
+  }
+  res.bestAz = best; res.reason = String(reason).replace(/\.$/, "");
+  S.scanResult = res;
+  S.target = {az:best, el:res.el ?? elTarget()}; S.viewSet = true; S.prim = null;
+  setStatus("Ready");
+  S.labelTxt = res.label ? `Looks like ${/^[aeiou]/i.test(res.label.name) ? "an" : "a"} ${res.label.name}. ` : "";
+  S.ideas = buildIdeas(res, views);
+  showIdeas(); // picks the first idea and explains it
+}
+function contactSheet(views){
+  const pick = views.length <= 9 ? views : Array.from({length:9}, (_,i) => views[Math.round(i*(views.length-1)/8)]);
+  const cols = 3, cell = 220, rows = Math.ceil(pick.length/cols);
+  const c = document.createElement("canvas"); c.width = cols*cell; c.height = rows*cell;
+  const x = c.getContext("2d"); x.fillStyle = "#111"; x.fillRect(0,0,c.width,c.height);
+  const byLetter = {}, legend = [];
+  pick.forEach((v,i) => {
+    const L = String.fromCharCode(65+i), cx = (i%cols)*cell, cy = Math.floor(i/cols)*cell;
+    const k = Math.min((cell-8)/v.img.width, (cell-30)/v.img.height);
+    x.drawImage(v.img, cx + (cell - v.img.width*k)/2, cy + 26, v.img.width*k, v.img.height*k);
+    x.fillStyle = "#ffc23d"; x.font = "bold 20px sans-serif"; x.fillText(`${L}  ${Math.round(v.az)}°`, cx+8, cy+20);
+    byLetter[L] = v; legend.push(`${L}: ${Math.round(v.az)}°`);
+  });
+  return {b64:c.toDataURL("image/jpeg", .8).split(",")[1], byLetter, legend:legend.join(", ")};
+}
+
+// ---------- Debug clip: what the camera saw + what the app decided, so a problem can be replayed ----------
+let dbgBlob = null;
+function startRecording(){
+  if (S.rec || !$("start").hidden) return;
+  $("settings").hidden = true;
+  S.rec = {t0:performance.now(), frames:[], states:[], taps:[], lastF:0, lastS:0};
+  showTip("Recording a 12-second debug clip. Use the app as normal.");
+  setTimeout(finishRecording, REC_MS);
+}
+function finishRecording(){
+  const r = S.rec; if (!r) return; S.rec = null; setStatus("Ready");
+  const m = view(), {key, ...safe} = S.settings;
+  const sr = S.scanResult ? {...S.scanResult, bins:undefined} : null;
+  const data = {app:"framewise", version:VERSION, when:new Date().toISOString(), ua:navigator.userAgent,
+    screen:{W:m && m.W, H:m && m.H, dpr:window.devicePixelRatio, standalone:!!navigator.standalone},
+    video:{w:video.videoWidth, h:video.videoHeight}, segCanvas:{w:scv.width, h:scv.height},
+    settings:{...safe, hasKey:!!key}, mode:S.mode, elPref:S.elPref,
+    segStats:{...S.segStats, avg:S.segStats.n ? S.segStats.sum/S.segStats.n : 0},
+    errors:S.errors.slice(), scanResult:sr, taps:r.taps, states:r.states, frames:r.frames};
+  dbgBlob = new Blob([JSON.stringify(data)], {type:"application/json"});
+  $("dbgInfo").textContent = `${r.frames.length} camera frames, ${r.states.length} sensor readings, ${S.errors.length} errors · ${(dbgBlob.size/1048576).toFixed(1)} MB. Your AI key is not included.`;
+  $("dbg").hidden = false;
+}
+async function shareDebug(){
+  if (!dbgBlob) return;
+  const name = `framewise-debug-${new Date().toISOString().slice(0,16).replace(/[:T]/g,"-")}.json`;
+  for (const type of ["application/json", "text/plain"]){
+    const files = [new File([dbgBlob], name, {type})];
+    try{ if (navigator.canShare && navigator.canShare({files})){ await navigator.share({files}); $("dbg").hidden = true; return; } }
+    catch(e){ if (e.name === "AbortError") return; logErr(e); }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(dbgBlob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+}
 
 function guidance(F){
   const dx = F.x0 + F.w/2 - .5, dy = F.y0 + F.h/2 - .5, z = Math.log(F.s);
-  const P = S.aligned ? .075 : .045, Z = S.aligned ? .22 : .14, R = S.aligned ? 4 : 2.5;
+  // Tolerances sized for hand-held shooting; once on target they widen so small wobbles don't break the lock.
+  const P = S.aligned ? .085 : .055, Z = S.aligned ? .26 : .16, R = S.aligned ? 6 : 4;
   const mv = [];
   let onView = true;
   if (S.vp){
@@ -572,7 +948,48 @@ function draw(F, locked, now){
   ctx.fillStyle = AIM; ctx.beginPath(); ctx.arc(clamp(ix,6,W-6),clamp(iy,6,H-6),5,0,Math.PI*2); ctx.fill();
 }
 
-function setStatus(t){ $("status").textContent = t; }
+// ---------- Shot ideas: a few good options from the scan, each with a real preview ----------
+function buildIdeas(res, views){
+  const near = az => views.reduce((p,v) => Math.abs(wrap(v.az - az)) < Math.abs(wrap(p.az - az)) ? v : p);
+  const ideas = [], elBase = res.el ?? elTarget();
+  const add = (name, why, az, el) => {
+    if (ideas.some(i => Math.abs(wrap(i.az - az)) < 20 && Math.abs(i.el - el) < 15)) return;
+    const v = near(az);
+    ideas.push({name, why, az, el, score:Math.abs(v.el - el) < 15 ? v.aes : null, thumb:v.img.toDataURL("image/jpeg", .7)}); // only score views we actually saw
+  };
+  if (res.kind === "person") add("Three-quarter portrait", "Face turned slightly, the classic flattering angle", res.bestAz, elBase);
+  else add("Show two sides", "Turned a little, it looks solid and 3D", res.bestAz, elBase);
+  if (res.frontAz != null) add(res.kind === "person" ? "Straight on" : "Face-on",
+    res.kind === "person" ? "Direct and confident, eyes to the camera" : "Simple and graphic, good for symmetry", res.frontAz, elBase);
+  if (elBase < 20) add("From a little above", "Shows its top and shape, with a tidy background", res.bestAz, 35);
+  else add("Down at its level", "Getting low makes it feel bigger and closer", res.bestAz, 0);
+  return ideas.slice(0, 3);
+}
+function showIdeas(){
+  const box = $("ideas"); box.innerHTML = "";
+  (S.ideas || []).forEach((it, i) => {
+    const b = document.createElement("button"); b.className = "idea"; b.type = "button";
+    const im = document.createElement("img"); im.src = it.thumb; im.alt = "";
+    const t = document.createElement("b"); t.textContent = it.name;
+    const s = document.createElement("span"); s.textContent = it.why;
+    b.append(im, t, s);
+    if (Number.isFinite(it.score)){ const sc = document.createElement("i"); sc.textContent = `Looks: ${it.score.toFixed(1)} / 10`; b.append(sc); }
+    b.addEventListener("click", () => pickIdea(i));
+    box.append(b);
+  });
+  const any = !!(S.ideas && S.ideas.length);
+  box.hidden = !any; document.body.classList.toggle("has-ideas", any);
+  if (any) pickIdea(0);
+}
+function pickIdea(i){
+  const it = S.ideas && S.ideas[i]; if (!it) return;
+  S.activeIdea = i; S.target = {az:it.az, el:it.el}; S.viewSet = true; S.prim = null;
+  [...$("ideas").children].forEach((c, j) => c.setAttribute("aria-pressed", String(j === i)));
+  showTip(`${S.labelTxt || ""}${it.name}: ${it.why}.`);
+}
+function hideIdeas(){ S.ideas = null; S.activeIdea = null; $("ideas").hidden = true; $("ideas").innerHTML = ""; document.body.classList.remove("has-ideas"); }
+
+function setStatus(t){ $("status").textContent = t; $("status").hidden = t === "Ready"; } // only show status when there's news
 function setMain(text, now, force){
   if (text === S.shown) return;
   if (!force && now - S.shownT < 400) return;
@@ -581,9 +998,12 @@ function setMain(text, now, force){
 
 function loop(now){
   requestAnimationFrame(loop);
+  keepCameraAlive(now);
   if (!view()) return;
-  if (S.ready && S.key && now - S.lastSegT > 60){ S.lastSegT = now; segStep(); }
+  if (S.ready && S.key && now - S.lastSegT > S.segGap){ S.lastSegT = now; segStep(); }
+  updateChecks(now);
   updateViewpoint(now);
+  scanStep(now);
   hl.classList.toggle("lost", S.lost > 10);
 
   const lost = S.lost > 20;
@@ -598,32 +1018,66 @@ function loop(now){
     }
   } else S.frame = null;
 
-  const locked = !!(g && g.aligned);
+  const locked = !!(g && g.aligned) && !S.scan;
   S.g = g;
   const changed = locked !== S.aligned;
   S.aligned = locked;
   draw(F, locked, now);
   drawGizmo(g ? S.onView : false);
+  renderChecks(g, locked);
 
   const sub = $("gSub");
   if (!S.key){ setMain("Tap what you want to photograph", now, true); sub.textContent = S.ready ? "" : "Loading on-device AI…"; }
   else if (!S.ready){ setMain("Loading on-device AI…", now, true); sub.textContent = ""; }
   else if (lost){ setMain("Lost it. Tap your subject again", now, true); sub.textContent = ""; }
   else if (!S.hasMask){ setMain("Finding your subject…", now, true); sub.textContent = ""; }
+  else if (S.scan){
+    setMain(S.vp ? "Walk slowly around it, keep it in view" : "Hold on, finding your angle…", now, false);
+    sub.textContent = `${S.scan.bins.size} angles scanned · tap Done when you’ve gone round`;
+  }
   else if (g){
-    setMain(locked ? "Perfect. Hold still" : say(g.mv[0]), now, changed);
+    // Keep the current instruction unless another becomes clearly more important: stops the text flickering.
+    let primary = g.mv[0];
+    if (!locked && S.prim){ const keep = g.mv.find(p => p.kind === S.prim.kind && p.dir === S.prim.dir); if (keep && keep.m > primary.m*.6) primary = keep; }
+    S.prim = locked ? null : primary;
+    const issue = locked ? [S.checks?.light, S.checks?.bg].find(c => c && !c.ok) : null;
+    const shaky = S.shake != null && S.shake >= 12;
+    setMain(locked ? (issue ? `Framed well. ${issue.say}` : shaky ? "Framed well. Hold steady" : "Perfect. Hold still") : say(primary), now, changed);
+    S.almost = locked && !!(issue || shaky);
+    const next = locked ? null : g.mv.find(p => p !== primary);
     const modeTxt = S.ai ? "AI FRAME" : MODES[S.mode].label.toUpperCase();
     sub.textContent = S.settings.debug
       ? `${modeTxt} · dx ${g.dx.toFixed(2)} dy ${g.dy.toFixed(2)} zoom ${g.z.toFixed(2)} roll ${S.roll==null?"–":S.roll.toFixed(1)}° · ${S.vp ? `az ${S.vp.az.toFixed(0)} el ${S.vp.el.toFixed(0)} fov ${(2*Math.atan(S.T)*R2D).toFixed(0)}° · ` : ""}${S.segMs.toFixed(0)}ms`
-      : (!locked && g.mv[1] ? `then ${say(g.mv[1]).toLowerCase()}` : modeTxt);
+      : (next ? `then ${say(next).toLowerCase()}` : modeTxt);
   }
-  $("guide").classList.toggle("locked", locked);
-  $("shutter").classList.toggle("locked", locked);
-  if (S.roll != null) $("levelVal").textContent = `${Math.round(S.roll)}°`;
+  const almost = locked && !!S.almost;
+  $("guide").classList.toggle("locked", locked && !almost);
+  $("guide").classList.toggle("almost", almost);
+  $("shutter").classList.toggle("locked", locked && !almost);
+  $("levelVal").textContent = S.roll != null ? `${Math.round(S.roll)}°` : "–";
+  if (S.rec){
+    const t = now - S.rec.t0;
+    setStatus(`REC ${Math.max(0, Math.ceil((REC_MS - t)/1000))}s`);
+    if (now - S.rec.lastF > 200 && S.rec.frames.length < 70 && video.readyState >= 2){ // what the camera saw, at the size the AI sees it
+      S.rec.lastF = now;
+      const c = crop(view()), fc = document.createElement("canvas"); fc.width = scv.width; fc.height = scv.height;
+      fc.getContext("2d").drawImage(video, c.sx, c.sy, c.sw, c.sh, 0, 0, fc.width, fc.height);
+      S.rec.frames.push({t:Math.round(t), key:S.key, img:fc.toDataURL("image/jpeg", .7)});
+    }
+    if (now - S.rec.lastS > 100){
+      S.rec.lastS = now;
+      const r3 = v => v == null ? v : Math.round(v*1000)/1000;
+      S.rec.states.push({t:Math.round(t), key:S.key && {x:r3(S.key.x), y:r3(S.key.y)}, box:S.box && S.box.map(r3), hasMask:S.hasMask, lost:S.lost,
+        vp:S.vp && {az:r3(S.vp.az), el:r3(S.vp.el)}, target:{...S.target}, T:r3(S.T), roll:r3(S.roll), grav:S.grav && S.grav.map(r3),
+        ori:S.ori && S.ori.map(r3), frame:S.frame && {x0:r3(S.frame.x0), y0:r3(S.frame.y0), w:r3(S.frame.w), s:r3(S.frame.s)},
+        mv:g ? g.mv.map(p => p.kind + (p.dir ? ":" + p.dir : "") + ":" + p.m.toFixed(1)) : null, main:S.shown, locked, segMs:Math.round(S.segMs), scan:S.scan ? S.scan.bins.size : null,
+        chk:S.checks ? {...S.checks.stats, light:S.checks.light.ok, bg:S.checks.bg.ok} : null, shake:r3(S.shake)});
+    }
+  }
 
   if (locked){
     if (!S.lockSince) S.lockSince = now;
-    if (S.settings.autoCap && !S.captured && now - S.lockSince > 150 && $("result").hidden){ S.captured = true; capture(true); }
+    if (S.settings.autoCap && !S.captured && now - S.lockSince > 150 && $("result").hidden && !(S.shake >= 12)){ S.captured = true; capture(true); }
   } else { S.lockSince = 0; S.captured = false; }
 }
 
@@ -679,6 +1133,15 @@ function framingInfo(){
   if (S.vp){
     const dAz = wrap(S.target.az - S.vp.az);
     lines.push(`Viewpoint: camera ${fmtEl(S.vp.el)} (ideal: ${fmtEl(S.target.el)})${Math.abs(dAz) >= 10 ? `; the ideal angle was ~${Math.round(Math.abs(dAz))}° further ${dAz > 0 ? "right" : "left"} around the subject` : "; around the subject: on the chosen side"}.`);
+  }
+  if (S.checks){
+    const c = S.checks, bad = [c.light, c.bg].filter(x => !x.ok).map(x => x.say.toLowerCase());
+    lines.push(bad.length ? `Checks: ${bad.join("; ")}.` : "Checks: light and background looked good.");
+  }
+  if (S.ideas && S.activeIdea != null) lines.push(`Shot idea: ${S.ideas[S.activeIdea].name} (${S.ideas[S.activeIdea].why.toLowerCase()}).`);
+  if (S.scanResult){
+    const r = S.scanResult;
+    lines.push(`Scan: ${r.n} angles over ${r.span}°.${r.label ? ` Identified as ${r.label.name}${r.label.ai ? " (AI)" : ` (${Math.round(r.label.score*100)}% sure)`}.` : ""} Best angle chosen: ${r.reason}.${r.scored ? ` Looks score of that view: ${r.bestScore.toFixed(1)}/10 (the angles ranged ${r.scoreRange[0].toFixed(1)} to ${r.scoreRange[1].toFixed(1)}).` : ""}`);
   }
   if (S.roll != null) lines.push(`Level: ${Math.abs(S.roll) < 0.5 ? "straight" : S.roll.toFixed(1) + "° off"}.`);
   return {...base, text:lines.join("\n"), b:b.slice(), F:S.frame ? {...S.frame} : null, target, targetLabel, aligned:g.aligned};
@@ -785,28 +1248,33 @@ Decide the main subject and where it should sit in the ideal photo. Coordinates 
 - camera_elevation_deg: the best camera height as an angle relative to the subject's centre (0 = level with it, positive = above looking down, e.g. 45 for food, 85 for a flat lay; negative = below looking up).
 Reply with ONLY JSON: {"subject":"short name","subject_box":[..],"target_box":[..],"orbit_deg":0,"camera_elevation_deg":0,"tip":"one short, specific instruction about light, background or timing (max 14 words)"}`;
 }
-async function askAI(){
+// One image + prompt to the user's chosen AI provider; returns the parsed JSON reply.
+async function aiJSON(img, prompt, maxTokens){
   const {prov, key} = S.settings, model = S.settings.model || FALLBACK_MODELS[prov];
+  let text;
+  if (prov === "gemini"){
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
+      method:"POST", headers:{"content-type":"application/json"},
+      body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"image/jpeg",data:img}},{text:prompt}]}], generationConfig:{responseMimeType:"application/json",temperature:0.2}})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error?.message || r.status);
+    text = j.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+  } else {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",
+      headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model, max_tokens:maxTokens, messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}},{type:"text",text:prompt}]}]})});
+    const j = await r.json(); if (!r.ok) throw new Error(j.error?.message || r.status);
+    text = j.content?.map(c=>c.text||"").join("") || "";
+  }
+  return JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}")+1));
+}
+async function askAI(){
+  const {prov, key} = S.settings;
   if (prov === "none" || !key){ openSettings(); return; }
   if (!video.videoWidth) return;
   const btn = $("aiBtn"); btn.classList.add("busy"); btn.disabled = true; setStatus("Reading scene");
   try{
     const img = frameJPEG(), prompt = aiPrompt();
-    let text;
-    if (prov === "gemini"){
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`, {
-        method:"POST", headers:{"content-type":"application/json"},
-        body:JSON.stringify({contents:[{parts:[{inline_data:{mime_type:"image/jpeg",data:img}},{text:prompt}]}], generationConfig:{responseMimeType:"application/json",temperature:0.2}})});
-      const j = await r.json(); if (!r.ok) throw new Error(j.error?.message || r.status);
-      text = j.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
-    } else {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {method:"POST",
-        headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model, max_tokens:400, messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}},{type:"text",text:prompt}]}]})});
-      const j = await r.json(); if (!r.ok) throw new Error(j.error?.message || r.status);
-      text = j.content?.map(c=>c.text||"").join("") || "";
-    }
-    const js = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}")+1));
+    const js = await aiJSON(img, prompt, 400);
     const ok = a => Array.isArray(a) && a.length === 4 && a.every(Number.isFinite);
     if (!ok(js.subject_box) || !ok(js.target_box)) throw new Error("AI reply had no usable boxes");
     const b = js.subject_box;
@@ -881,6 +1349,11 @@ function openSettings(){
   $("settings").hidden = false;
 }
 $("openSettings").addEventListener("click", openSettings);
+$("scanBtn").addEventListener("click", toggleScan);
+$("recDbg").addEventListener("click", startRecording);
+$("dbgShare").addEventListener("click", shareDebug);
+$("dbgDiscard").addEventListener("click", () => { dbgBlob = null; $("dbg").hidden = true; });
+$("ver").textContent = `Version ${VERSION}`;
 $("prov").addEventListener("change", () => { $("model").placeholder = FALLBACK_MODELS[$("prov").value] || ""; });
 $("closeSettings").addEventListener("click", () => {
   Object.assign(S.settings, {prov:$("prov").value, key:$("key").value.trim(), model:$("model").value.trim(),
